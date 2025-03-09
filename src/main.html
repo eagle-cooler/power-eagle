@@ -60,6 +60,36 @@
                             {{ isModInstalled ? 'Installed' : 'Install' }}
                         </button>
                     </div>
+
+                    <!-- Installed Mods Management -->
+                    <h2 class="installed-mods-title">Installed Mods</h2>
+                    <div class="installed-mods-card">
+                        <div v-for="repo in installedRepos" :key="repo.name" class="installed-mod-item">
+                            <div class="mod-info">
+                                <span class="mod-name">{{ repo.name }}</span>
+                                <span class="mod-path">{{ repo.path }}</span>
+                            </div>
+                            <div class="mod-actions">
+                                <button 
+                                    @click="updateMod(repo)"
+                                    class="update-button"
+                                    :disabled="repo.updating"
+                                >
+                                    {{ repo.updating ? 'Updating...' : 'Update' }}
+                                </button>
+                                <button 
+                                    @click="removeMod(repo)"
+                                    class="remove-button"
+                                    :disabled="repo.updating"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="installedRepos.length === 0" class="no-mods-message">
+                            No mods installed yet
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

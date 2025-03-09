@@ -1,7 +1,7 @@
 const pluginManager = require('./pluginManager');
 
 module.exports = {
-    name: 'Plugin Installer (BRAT)',
+    name: 'BRAT (Placeholder)',
     styles: ['styles.css'],
     render: () => `
         <div class="pluginInstall-container">

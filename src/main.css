@@ -283,4 +283,94 @@
     background-color: var(--color-text-tertiary);
     cursor: not-allowed;
     opacity: 0.7;
+}
+
+/* Installed Mods Management */
+.installed-mods-title {
+    margin-top: 32px;
+    color: var(--color-text-primary);
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.installed-mods-card {
+    background-color: var(--color-bg-hover);
+    border: 1px solid var(--border-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    max-width: 600px;
+}
+
+.installed-mod-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-secondary);
+}
+
+.installed-mod-item:last-child {
+    border-bottom: none;
+}
+
+.mod-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mod-name {
+    color: var(--color-text-primary);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.mod-path {
+    color: var(--color-text-tertiary);
+    font-size: 12px;
+}
+
+.mod-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.update-button, .remove-button {
+    padding: 6px 12px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.update-button {
+    background-color: var(--color-text-primary);
+    color: var(--color-bg-primary);
+}
+
+.remove-button {
+    background-color: transparent;
+    color: var(--color-text-error);
+    border-color: var(--color-text-error);
+}
+
+.update-button:hover:not(:disabled),
+.remove-button:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.update-button:disabled,
+.remove-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.no-mods-message {
+    color: var(--color-text-tertiary);
+    text-align: center;
+    padding: 24px;
+    font-style: italic;
 } 

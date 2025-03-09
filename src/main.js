@@ -238,7 +238,8 @@ const app = createApp({
             allModsVisible: true,
             modRepoUrl: 'https://github.com/eagle-cooler/power-eagle-mods',
             isModInstalled: false,
-            checkTimer: null
+            checkTimer: null,
+            installedRepos: []
         }
     },
     watch: {
@@ -287,8 +288,9 @@ const app = createApp({
             this.setActiveMod(this.mods[0]);
         }
 
-        // Initial check for mod installation
-        this.checkModInstallation();
+        // Initial check for mod installation and load installed repos
+        await this.checkModInstallation();
+        await this.loadInstalledRepos();
     },
     beforeUnmount() {
         // Clear any existing timer when component is unmounted
@@ -359,6 +361,85 @@ const app = createApp({
                 this.isModInstalled = false;
             }
         },
+        async loadInstalledRepos() {
+            try {
+                if (!fs.existsSync(CONSTANTS.MOD_DIRS.USER)) {
+                    this.installedRepos = [];
+                    return;
+                }
+
+                const dirents = await fs.promises.readdir(CONSTANTS.MOD_DIRS.USER, { withFileTypes: true });
+                const repoFolders = dirents.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+                
+                this.installedRepos = await Promise.all(repoFolders.map(async folder => {
+                    const repoPath = path.join(CONSTANTS.MOD_DIRS.USER, folder);
+                    const gitDir = path.join(repoPath, '.git');
+                    const modsDir = path.join(repoPath, 'mods');
+                    
+                    if (fs.existsSync(gitDir) && fs.existsSync(modsDir)) {
+                        return {
+                            name: folder,
+                            path: repoPath,
+                            updating: false
+                        };
+                    }
+                    return null;
+                }));
+                
+                this.installedRepos = this.installedRepos.filter(Boolean);
+            } catch (error) {
+                console.error('Failed to load installed repos:', error);
+                this.installedRepos = [];
+            }
+        },
+        async updateMod(repo) {
+            try {
+                repo.updating = true;
+                execSync('git pull', { 
+                    cwd: repo.path,
+                    stdio: 'ignore' 
+                });
+                
+                // Reload mods to reflect changes
+                const modManager = new ModManager();
+                this.mods = await modManager.loadMods();
+                
+                // Update last pull time
+                const lastPullKey = `lastPull_${repo.name}`;
+                localStorage.setItem(lastPullKey, Date.now().toString());
+            } catch (error) {
+                console.error(`Failed to update mod ${repo.name}:`, error);
+            } finally {
+                repo.updating = false;
+            }
+        },
+        async removeMod(repo) {
+            try {
+                // Remove the repository directory
+                await fs.promises.rm(repo.path, { recursive: true, force: true });
+                
+                // Remove from installed repos list
+                const index = this.installedRepos.indexOf(repo);
+                if (index > -1) {
+                    this.installedRepos.splice(index, 1);
+                }
+                
+                // Remove last pull time from localStorage
+                const lastPullKey = `lastPull_${repo.name}`;
+                localStorage.removeItem(lastPullKey);
+                
+                // Reload mods to reflect changes
+                const modManager = new ModManager();
+                this.mods = await modManager.loadMods();
+                
+                // Update installation status if this was the current repo
+                if (this.modRepoUrl.endsWith(repo.name)) {
+                    this.isModInstalled = false;
+                }
+            } catch (error) {
+                console.error(`Failed to remove mod ${repo.name}:`, error);
+            }
+        },
         async installMod() {
             try {
                 const repoName = this.modRepoUrl.split('/').pop();
@@ -388,6 +469,9 @@ const app = createApp({
                     }
                 });
                 this.saveVisibilityState();
+
+                // Reload installed repos list
+                await this.loadInstalledRepos();
             } catch (error) {
                 console.error('Failed to install mod:', error);
             }
