@@ -217,4 +217,70 @@
     color: var(--color-text-tertiary);
     font-style: italic;
     margin-left: 8px;
+}
+
+/* Mod Installation Section */
+.mod-install-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-secondary);
+}
+
+.mod-install-section h2 {
+    color: var(--color-text-primary);
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.mod-install-card {
+    background-color: var(--color-bg-hover);
+    border: 1px solid var(--border-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    max-width: 600px;
+}
+
+.mod-install-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s ease;
+}
+
+.mod-install-input:hover {
+    border-color: var(--color-text-tertiary);
+}
+
+.mod-install-input:focus {
+    outline: none;
+    border-color: var(--color-text-secondary);
+}
+
+.mod-install-button {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 4px;
+    background-color: var(--color-text-primary);
+    color: var(--color-bg-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mod-install-button:hover:not(.disabled) {
+    opacity: 0.9;
+}
+
+.mod-install-button.disabled {
+    background-color: var(--color-text-tertiary);
+    cursor: not-allowed;
+    opacity: 0.7;
 } 

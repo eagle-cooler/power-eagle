@@ -26,21 +26,41 @@
                 </div>
                 <ul class="nav-list">
                     <li 
-                        v-for="plugin in filteredPlugins" 
-                        :key="plugin.folder"
-                        @click="setActivePlugin(plugin)"
-                        :class="{ active: activePlugin === plugin }"
+                        v-for="mod in filteredMods" 
+                        :key="mod.folder"
+                        @click="setActiveMod(mod)"
+                        :class="{ active: activeMod === mod }"
                         class="nav-item"
-                        v-show="isPluginVisible(plugin.folder)"
+                        v-show="isModVisible(mod.folder)"
                     >
-                        {{ plugin.name }}
+                        {{ mod.name }}
                     </li>
                 </ul>
             </div>
             
             <!-- Main Content -->
             <div class="main-content">
-                <div v-html="activePlugin?.content"></div>
+                <div v-html="activeMod?.content"></div>
+                <!-- Mod Installation Card (shown only when mods module is active) -->
+                <div v-if="activeMod?.folder === 'mods'" class="mod-install-section">
+                    <h2>Install New Mod</h2>
+                    <div class="mod-install-card">
+                        <input 
+                            type="text" 
+                            v-model="modRepoUrl"
+                            placeholder="Enter mod repository URL"
+                            class="mod-install-input"
+                        >
+                        <button 
+                            @click="installMod"
+                            :disabled="isModInstalled"
+                            class="mod-install-button"
+                            :class="{ 'disabled': isModInstalled }"
+                        >
+                            {{ isModInstalled ? 'Installed' : 'Install' }}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
