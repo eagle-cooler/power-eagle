@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Eagle</title>
+    <script src="../lib/vue.global.prod.js"></script>
+    <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="main.css">
+    <script src="app.js"></script>
+    <script src="main.js" defer></script>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <!-- Left Subpanel -->
+            <div class="subpanel">
+                <h3>Navigation</h3>
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        v-model="searchQuery"
+                        placeholder="Search items..."
+                        class="search-input"
+                    >
+                </div>
+                <ul class="nav-list">
+                    <li 
+                        v-for="plugin in filteredPlugins" 
+                        :key="plugin.folder"
+                        @click="setActivePlugin(plugin)"
+                        :class="{ active: activePlugin === plugin }"
+                        class="nav-item"
+                        v-show="isPluginVisible(plugin.folder)"
+                    >
+                        {{ plugin.name }}
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="main-content">
+                <div v-html="activePlugin?.content"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

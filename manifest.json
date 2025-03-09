@@ -1,0 +1,18 @@
+{
+	"id": "055ffc5b-7cd2-46f0-906d-4487211bb51a",
+	"version": "1.0.0",
+	"platform": "all",
+	"arch": "all",
+	"name": "Power Eagle",
+	"logo": "/logo.png",
+	"keywords": ["powertoys"],
+	"devTools": true,
+	"fallbackLanguage": "en",
+	"languages": ["en", "zh_TW", "zh_CN", "ja_JP", "es_ES", "ru_RU", "de_DE", "ko_KR"],
+	"main" : {
+		"url": "src/main.html",
+		"width": 910,
+		"height": 600,
+		"devTools" : true
+	}
+}

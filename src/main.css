@@ -1,0 +1,220 @@
+/* Layout Container */
+.container {
+    display: flex;
+    flex-direction: row;
+    height: calc(100vh - 48px);
+    overflow: hidden;
+}
+
+/* Subpanel Styles */
+.subpanel {
+    min-width: 250px;
+    max-width: 250px;
+    padding: 20px;
+    border-right: 1px solid var(--border-secondary);
+    background-color: transparent;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.subpanel h3 {
+    color: var(--color-text-primary);
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.subpanel ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.subpanel li {
+    color: var(--color-text-secondary);
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: 14px;
+}
+
+.subpanel li:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+.subpanel li.active {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+/* Main Content Styles */
+.main-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    background-color: transparent;
+    min-width: 0;
+}
+
+.main-content h1 {
+    color: var(--color-text-primary);
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.main-content p {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+/* Search Container Styles */
+.search-container {
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.search-input:hover {
+    border-color: var(--color-text-tertiary);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--color-text-secondary);
+}
+
+.search-input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    margin: 4px 0;
+}
+
+.nav-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.nav-item.active {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Mods Controls Styles */
+.mods-controls {
+    margin-bottom: 24px;
+}
+
+.mods-controls h2 {
+    color: var(--color-text-primary);
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+/* Menu Controls Styles */
+.menu-controls {
+    padding: 20px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 8px;
+    background-color: var(--color-bg-hover);
+}
+
+.toggle-all {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 6px;
+    background-color: transparent;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.toggle-all:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.menu-items-control {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.menu-item-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.menu-item-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.menu-item-toggle input[type="checkbox"] {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.menu-item-toggle label {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    flex: 1;
+}
+
+.menu-item-toggle:hover label {
+    color: var(--color-text-primary);
+}
+
+.menu-item-toggle input[type="checkbox"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.menu-item-toggle .mods-label {
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+.menu-item-toggle .mods-note {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+    margin-left: 8px;
+} 
