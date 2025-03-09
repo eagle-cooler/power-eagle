@@ -237,3 +237,43 @@ button:disabled {
 h1, h2, h3, h4, h5, h6 {
     color: var(--color-text-primary);
 }
+
+/* Modern Scrollbar Styles */
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-text-tertiary);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-text-tertiary) transparent;
+}
+
+/* Hide scrollbar when not hovering (optional) */
+.subpanel, .main-content {
+    transition: scrollbar-color 0.2s ease;
+}
+
+.subpanel:hover, .main-content:hover {
+    scrollbar-color: var(--color-text-secondary) transparent;
+}
