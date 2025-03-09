@@ -157,16 +157,30 @@ const app = createApp({
         // extend the list for user scope
         this.plugins.push(...(await loadPlugins(pluginUserDir)));
         
-        // Initialize visibility state for all plugins
-        this.plugins.forEach(plugin => {
-            this.pluginVisibility[plugin.folder] = true;
-        });
+        // Load saved visibility states or initialize defaults
+        const savedVisibility = localStorage.getItem('pluginVisibility');
+        if (savedVisibility) {
+            this.pluginVisibility = JSON.parse(savedVisibility);
+            // Update allPluginsVisible based on loaded state
+            this.allPluginsVisible = Object.entries(this.pluginVisibility)
+                .filter(([key]) => key !== 'mods')
+                .every(([, value]) => value);
+        } else {
+            // Initialize visibility state for all plugins
+            this.plugins.forEach(plugin => {
+                this.pluginVisibility[plugin.folder] = true;
+            });
+            this.saveVisibilityState();
+        }
         
         if (this.plugins.length > 0) {
             this.setActivePlugin(this.plugins[0]);
         }
     },
     methods: {
+        saveVisibilityState() {
+            localStorage.setItem('pluginVisibility', JSON.stringify(this.pluginVisibility));
+        },
         async setActivePlugin(plugin) {
             this.activePlugin = plugin;
             await this.$nextTick();
@@ -182,6 +196,9 @@ const app = createApp({
             this.allPluginsVisible = Object.entries(this.pluginVisibility)
                 .filter(([key]) => key !== 'mods')
                 .every(([, value]) => value);
+            
+            // Save the updated visibility state
+            this.saveVisibilityState();
             
             // If the active plugin is hidden, switch to the first visible plugin
             if (!this.pluginVisibility[folder] && this.activePlugin?.folder === folder) {
@@ -199,6 +216,9 @@ const app = createApp({
                 }
             });
             this.allPluginsVisible = newState;
+            
+            // Save the updated visibility state
+            this.saveVisibilityState();
         }
     }
 }).mount('#app');
