@@ -30,8 +30,29 @@ class ModManager {
             libraryPath: ''
         };
         this.activeMods = new Set();
+        this.pollingInterval = null;
         
-        // Set up polling interval
+        // Set up library change handler
+        eagle.onLibraryChanged = (newPath, oldPath) => {
+            this.state.libraryPath = newPath;
+            if (this.loadedMods) {
+                this.loadedMods.forEach(mod => {
+                    if (!this.activeMods.has(mod.folder)) return;
+                    if (mod.onLibraryChanged) {
+                        mod.onLibraryChanged(newPath, oldPath);
+                    }
+                });
+            }
+        };
+
+        // Initialize state
+        this.state.libraryPath = eagle.library.path;
+        ModManager.instance = this;
+    }
+
+    startPolling() {
+        if (this.pollingInterval) return;
+        
         this.pollingInterval = setInterval(async () => {
             try {
                 // Handle folder selection
@@ -40,10 +61,8 @@ class ModManager {
                 
                 // Check for folder changes - only if there's an actual change
                 const folderChanged = 
-                    // Case 1: One is null and the other isn't
                     (this.state.selectedFolder === null && newFolder !== null) ||
                     (this.state.selectedFolder !== null && newFolder === null) ||
-                    // Case 2: Both exist but have different IDs
                     (this.state.selectedFolder?.id !== newFolder?.id);
                 
                 if (folderChanged) {
@@ -100,34 +119,26 @@ class ModManager {
                         });
                     }
                 }
+
+                // Stop polling if no active mods
+                if (this.activeMods.size === 0) {
+                    this.stopPolling();
+                }
             } catch (error) {
                 console.error('Error in event polling:', error);
             }
         }, 100);
-
-        // Set up library change handler
-        eagle.onLibraryChanged = (newPath, oldPath) => {
-            this.state.libraryPath = newPath;
-            if (this.loadedMods) {
-                this.loadedMods.forEach(mod => {
-                    if (!this.activeMods.has(mod.folder)) return;
-                    if (mod.onLibraryChanged) {
-                        mod.onLibraryChanged(newPath, oldPath);
-                    }
-                });
-            }
-        };
-
-        // Initialize state
-        this.state.libraryPath = eagle.library.path;
-        ModManager.instance = this;
     }
 
-    cleanup() {
+    stopPolling() {
         if (this.pollingInterval) {
             clearInterval(this.pollingInterval);
             this.pollingInterval = null;
         }
+    }
+
+    cleanup() {
+        this.stopPolling();
         this.loadedMods = [];
         this.activeMods.clear();
         this.state = {
@@ -206,7 +217,16 @@ class ModManager {
             const dirents = await fs.promises.readdir(modsDir, { withFileTypes: true });
             const modFolders = dirents.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
             
-            return Promise.all(modFolders.map(folder => this._loadMod(modsDir, folder, isBuiltin)));
+            // Filter out failed mods (undefined results) after loading
+            const loadedMods = await Promise.all(modFolders.map(async folder => {
+                try {
+                    return await this._loadMod(modsDir, folder, isBuiltin);
+                } catch (error) {
+                    console.error(`Skipping mod ${folder} due to error:`, error);
+                    return undefined;
+                }
+            }));
+            return loadedMods.filter(mod => mod !== undefined);
         } catch (error) {
             console.error(`Failed to read mods directory ${modsDir}:`, error);
             return [];
@@ -214,56 +234,62 @@ class ModManager {
     }
 
     async _loadMod(modsDir, folder, isBuiltin) {
-        try {
-            if (this.modCache.has(folder)) {
-                return this.modCache.get(folder);
-            }
+        if (this.modCache.has(folder)) {
+            return this.modCache.get(folder);
+        }
 
-            const modPath = path.join(modsDir, folder, 'index.js');
-            const modModule = require(modPath);
-            
-            // Bind event handlers to preserve context
-            const boundHandlers = {
-                onLibraryChanged: modModule.onLibraryChanged?.bind(modModule),
-                onItemSelected: modModule.onItemSelected?.bind(modModule),
-                onFolderSelected: modModule.onFolderSelected?.bind(modModule)
-            };
-            
-            const modData = {
-                name: modModule.name || folder,
-                folder,
-                content: modModule.render ? modModule.render() : '',
-                mount: async (container) => {
-                    // Mark mod as active when mounted
-                    this.activeMods.add(folder);
-                    console.log('Mounting mod:', folder, 'Has folder handler:', !!boundHandlers.onFolderSelected);
-                    
-                    // Call the original mount function if it exists
-                    if (modModule.mount) {
-                        const cleanup = await modModule.mount(container);
-                        // Wrap the cleanup to handle our active state
-                        return () => {
-                            this.activeMods.delete(folder);
-                            if (cleanup) cleanup();
-                        };
-                    }
-                    // Return a cleanup function that removes from active mods
+        const modPath = path.join(modsDir, folder, 'index.js');
+        const modModule = require(modPath);
+        
+        // Bind event handlers to preserve context
+        const boundHandlers = {
+            onLibraryChanged: modModule.onLibraryChanged?.bind(modModule),
+            onItemSelected: modModule.onItemSelected?.bind(modModule),
+            onFolderSelected: modModule.onFolderSelected?.bind(modModule)
+        };
+        
+        const modData = {
+            name: modModule.name || folder,
+            folder,
+            content: modModule.render ? modModule.render() : '',
+            mount: async (container) => {
+                // Mark mod as active when mounted
+                this.activeMods.add(folder);
+                console.log('Mounting mod:', folder, 'Has folder handler:', !!boundHandlers.onFolderSelected);
+                
+                // Start polling when a mod becomes active
+                this.startPolling();
+                
+                // Call the original mount function if it exists
+                if (modModule.mount) {
+                    const cleanup = await modModule.mount(container);
+                    // Wrap the cleanup to handle our active state
                     return () => {
                         this.activeMods.delete(folder);
+                        if (cleanup) cleanup();
+                        // Stop polling if no more active mods
+                        if (this.activeMods.size === 0) {
+                            this.stopPolling();
+                        }
                     };
-                },
-                styles: modModule.styles || [],
-                isBuiltin,
-                // Use bound event handlers
-                ...boundHandlers
-            };
+                }
+                // Return a cleanup function that removes from active mods
+                return () => {
+                    this.activeMods.delete(folder);
+                    // Stop polling if no more active mods
+                    if (this.activeMods.size === 0) {
+                        this.stopPolling();
+                    }
+                };
+            },
+            styles: modModule.styles || [],
+            isBuiltin,
+            // Use bound event handlers
+            ...boundHandlers
+        };
 
-            this.modCache.set(folder, modData);
-            return modData;
-        } catch (error) {
-            console.error(`Failed to load mod ${folder}:`, error);
-            return null;
-        }
+        this.modCache.set(folder, modData);
+        return modData;
     }
 
     _sortMods(mods) {
