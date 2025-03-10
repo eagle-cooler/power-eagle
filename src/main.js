@@ -1,13 +1,9 @@
 const { createApp } = Vue;
 
 let app = null;
-let modManager = null;
+const modManager = new ModManager();;
 
 eagle.onPluginRun(async () => {
-  if (!modManager) {
-    modManager = new ModManager();
-  }
-
   if (!app) {
     app = createApp({
       data() {
@@ -279,6 +275,6 @@ eagle.onPluginRun(async () => {
       },
     });
   }
-
+  
   app.mount("#app");
 });
