@@ -1,5 +1,7 @@
 const SingleItemHandler = require('./single-item-handler');
 
+let singleItemHandler = null;
+
 module.exports = {
     name: 'Run Things Workspace',
     styles: ['styles.css', "styles/script-filter.css"],
@@ -12,11 +14,12 @@ module.exports = {
         </div>
     `,
     mount: (container) => {
-        const singleItemHandler = new SingleItemHandler(eagle);
+        // Create a single instance that will be reused
+        singleItemHandler = new SingleItemHandler(eagle);
         
         // Initialize with current selection
         eagle.item.getSelected().then(items => {
-            handleItemSelection(items, singleItemHandler);
+            handleItemSelection(items);
             // Initialize event listeners after content is rendered
             setTimeout(() => {
                 singleItemHandler.initializeEventListeners();
@@ -24,11 +27,17 @@ module.exports = {
             }, 0);
         });
 
+        // Return cleanup function
+        return () => {
+            if (singleItemHandler) {
+                singleItemHandler.cleanup();
+                singleItemHandler = null;
+            }
+        };
     },
 
     onItemSelected: (newItems, oldItems) => {
-        const singleItemHandler = new SingleItemHandler(eagle);
-        handleItemSelection(newItems, singleItemHandler);
+        handleItemSelection(newItems);
         // Initialize event listeners after content is rendered
         setTimeout(() => {
             singleItemHandler.initializeEventListeners();
@@ -37,20 +46,22 @@ module.exports = {
     }
 };
 
-function handleItemSelection(items, handler) {
+function handleItemSelection(items) {
+    if (!singleItemHandler) return;
+    
     const messageElement = document.getElementById('selection-message');
     const singleItemView = document.getElementById('single-item-view');
     
     if (!items || items.length === 0) {
-        handler.selectedRunItem = null;
+        singleItemHandler.selectedRunItem = null;
         messageElement.classList.add('hidden');
-        singleItemView.innerHTML = handler.render(null);
+        singleItemView.innerHTML = singleItemHandler.render(null);
     } else if (items.length === 1) {
-        handler.selectedRunItem = items[0];
+        singleItemHandler.selectedRunItem = items[0];
         messageElement.classList.add('hidden');
-        singleItemView.innerHTML = handler.render(items[0]);
+        singleItemView.innerHTML = singleItemHandler.render(items[0]);
     } else {
-        handler.selectedRunItem = null;
+        singleItemHandler.selectedRunItem = null;
         messageElement.classList.remove('hidden');
         singleItemView.innerHTML = '';
     }

@@ -9,16 +9,110 @@ class SingleItemHandler {
         this.eagle = eagle;
         this.runScriptsPath = path.join(os.homedir(), 'eaglercooler', 'runscripts');
         this.selectedRunItem = null;
+        this.initialized = false;
+        this.currentContainer = null;
+        this.documentHandlersInitialized = false;
+        this.registeredHandlers = new Map(); // Fallback handler storage
+        
+        // Bind all handlers
         this.clickHandler = this.handleClick.bind(this);
         this.searchHandler = this.handleSearch.bind(this);
-        
-        // Bind drag and drop handlers
         this.handleDocumentDragOver = this.handleDocumentDragOver.bind(this);
         this.handleDocumentDrop = this.handleDocumentDrop.bind(this);
         this.handleContainerDragEnter = this.handleContainerDragEnter.bind(this);
         this.handleContainerDragOver = this.handleContainerDragOver.bind(this);
         this.handleContainerDragLeave = this.handleContainerDragLeave.bind(this);
         this.handleContainerDrop = this.handleContainerDrop.bind(this);
+
+        // Get ModManager from global scope with fallback
+        this.modManager = (typeof window !== 'undefined' && window.mainModManager) || 
+                         (typeof global !== 'undefined' && global.mainModManager) || 
+                         null;
+
+        // Initialize document-level handlers once
+        this.initializeDocumentHandlers();
+    }
+
+    // Helper method to register event handlers
+    registerEventHandler(element, eventType, handler, options = {}) {
+        const handlerId = `${element.id || 'document'}_${eventType}`;
+        
+        // Store handler reference for cleanup
+        if (!this.registeredHandlers.has(element)) {
+            this.registeredHandlers.set(element, new Map());
+        }
+        const elementHandlers = this.registeredHandlers.get(element);
+        if (!elementHandlers.has(eventType)) {
+            elementHandlers.set(eventType, new Set());
+        }
+        elementHandlers.get(eventType).add(handler);
+
+        // Register with ModManager if available
+        if (this.modManager) {
+            try {
+                this.modManager.registerGlobalHandler('run-things-workspace', handlerId, handler);
+            } catch (error) {
+                console.warn('Failed to register with ModManager:', error);
+            }
+        }
+
+        // Always add direct event listener
+        element.addEventListener(eventType, handler, options);
+    }
+
+    // Helper method to remove container handlers
+    removeContainerHandlers() {
+        if (this.currentContainer) {
+            const containerHandlers = this.registeredHandlers.get(this.currentContainer);
+            if (containerHandlers) {
+                containerHandlers.forEach((handlers, eventType) => {
+                    handlers.forEach(handler => {
+                        this.currentContainer.removeEventListener(eventType, handler);
+                    });
+                });
+                this.registeredHandlers.delete(this.currentContainer);
+            }
+        }
+
+        // Unregister from ModManager if available
+        if (this.modManager) {
+            try {
+                this.modManager.unregisterAllGlobalHandlers('run-things-workspace');
+            } catch (error) {
+                console.warn('Failed to unregister from ModManager:', error);
+            }
+        }
+
+        this.currentContainer = null;
+    }
+
+    // Initialize document-level handlers (called once in constructor)
+    initializeDocumentHandlers() {
+        if (this.documentHandlersInitialized) return;
+
+        // Register document-level handlers
+        this.registerEventHandler(document, 'click', this.clickHandler);
+        this.registerEventHandler(document, 'input', this.searchHandler);
+        this.registerEventHandler(document, 'dragover', this.handleDocumentDragOver);
+        this.registerEventHandler(document, 'drop', this.handleDocumentDrop);
+
+        this.documentHandlersInitialized = true;
+    }
+
+    // Method to handle item changes
+    setSelectedItem(item) {
+        if (this.selectedRunItem === item) return;
+        
+        // Clean up container handlers from previous item
+        this.removeContainerHandlers();
+        
+        // Update selected item
+        this.selectedRunItem = item;
+        
+        // Initialize drag and drop for new item
+        if (item) {
+            this.initDragDrop();
+        }
     }
 
     renderScripts(selectedItem) {
@@ -81,6 +175,9 @@ class SingleItemHandler {
     }
 
     render(selectedItem) {
+        // Update selected item and handlers
+        this.setSelectedItem(selectedItem);
+
         if (!selectedItem || !selectedItem.filePath) {
             return '<div class="no-selection">No item selected or invalid item</div>';
         }
@@ -227,6 +324,8 @@ class SingleItemHandler {
         if (itemInfo) {
             const itemId = itemInfo.dataset.itemId;
             if (itemId && this.selectedRunItem && this.selectedRunItem.filePath) {
+                e.preventDefault();
+                e.stopPropagation();
                 this.eagle.shell.openPath(this.selectedRunItem.filePath);
             }
             return;
@@ -255,6 +354,8 @@ class SingleItemHandler {
 
         // Open scripts folder button
         if (e.target.classList.contains('open-scripts-folder')) {
+            e.preventDefault();
+            e.stopPropagation();
             this.eagle.shell.openPath(this.runScriptsPath);
             return;
         }
@@ -445,56 +546,65 @@ class SingleItemHandler {
         }
     }
 
-    initializeEventListeners() {
-        // Remove existing event listeners if they exist
-        document.removeEventListener('click', this.clickHandler);
-        document.removeEventListener('input', this.searchHandler);
-        document.removeEventListener('dragover', this.handleDocumentDragOver);
-        document.removeEventListener('drop', this.handleDocumentDrop);
+    initDragDrop() {
+        const container = document.getElementById('files-drop-zone');
+        
+        if (!container) {
+            console.warn('No files-drop-zone container found!');
+            return;
+        }
 
-        // Add new event listeners
-        document.addEventListener('click', this.clickHandler);
-        document.addEventListener('input', this.searchHandler);
-        document.addEventListener('dragover', this.handleDocumentDragOver);
-        document.addEventListener('drop', this.handleDocumentDrop);
+        // Skip if already initialized for this container
+        if (this.currentContainer === container) return;
 
-        // Initialize drag and drop
-        this.initDragDrop();
+        // Clean up any existing container handlers
+        this.removeContainerHandlers();
+
+        // Update current container reference
+        this.currentContainer = container;
+
+        // Register container-level handlers
+        this.registerEventHandler(container, 'dragenter', this.handleContainerDragEnter);
+        this.registerEventHandler(container, 'dragover', this.handleContainerDragOver);
+        this.registerEventHandler(container, 'dragleave', this.handleContainerDragLeave);
+        this.registerEventHandler(container, 'drop', this.handleContainerDrop);
     }
 
-    initDragDrop() {
-        // Try to find the container, with a few retries if needed
-        let retryCount = 0;
-        const maxRetries = 3;
-        const findContainer = () => {
-            const container = document.getElementById('files-drop-zone');
-            
-            if (!container && retryCount < maxRetries) {
-                retryCount++;
-                setTimeout(findContainer, 100);
-                return;
+    // Method for backward compatibility with index.js
+    initializeEventListeners() {
+        // Re-initialize document handlers if needed
+        this.initializeDocumentHandlers();
+        
+        // Re-initialize container handlers if we have a selected item
+        if (this.selectedRunItem) {
+            this.initDragDrop();
+        }
+    }
+
+    // Cleanup method for complete teardown
+    cleanup() {
+        // Clean up all registered handlers
+        this.registeredHandlers.forEach((elementHandlers, element) => {
+            elementHandlers.forEach((handlers, eventType) => {
+                handlers.forEach(handler => {
+                    element.removeEventListener(eventType, handler);
+                });
+            });
+        });
+        this.registeredHandlers.clear();
+
+        // Unregister from ModManager if available
+        if (this.modManager) {
+            try {
+                this.modManager.unregisterAllGlobalHandlers('run-things-workspace');
+            } catch (error) {
+                console.warn('Failed to unregister from ModManager:', error);
             }
-            
-            if (!container) {
-                console.warn('No files-drop-zone container found after retries!');
-                return;
-            }
+        }
 
-            // Remove existing listeners if they exist
-            container.removeEventListener('dragenter', this.handleContainerDragEnter);
-            container.removeEventListener('dragover', this.handleContainerDragOver);
-            container.removeEventListener('dragleave', this.handleContainerDragLeave);
-            container.removeEventListener('drop', this.handleContainerDrop);
-
-            // Add new listeners
-            container.addEventListener('dragenter', this.handleContainerDragEnter);
-            container.addEventListener('dragover', this.handleContainerDragOver);
-            container.addEventListener('dragleave', this.handleContainerDragLeave);
-            container.addEventListener('drop', this.handleContainerDrop);
-        };
-
-        // Start looking for the container
-        findContainer();
+        this.documentHandlersInitialized = false;
+        this.initialized = false;
+        this.currentContainer = null;
     }
 }
 
