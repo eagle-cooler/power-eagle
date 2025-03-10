@@ -115,6 +115,111 @@ class SingleItemHandler {
         }
     }
 
+    // Helper method to parse script configuration
+    parseScriptConfig(scriptPath) {
+        try {
+            const script = require(scriptPath);
+            return {
+                badge_type: script.badge_type || 'base',
+                badge_text: script.badge_text || path.basename(scriptPath, path.extname(scriptPath)),
+                badge_onclick_type: script.badge_onclick_type || 'shell',
+                run: script.run,
+                filter: script.filter,
+                parse: script.parse
+            };
+        } catch (error) {
+            console.error(`Failed to parse script config ${scriptPath}:`, error);
+            return null;
+        }
+    }
+
+    // Helper method to execute script
+    async executeScript(scriptPath, context) {
+        try {
+            const script = require(scriptPath);
+            if (typeof script.run === 'function') {
+                await script.run(context);
+                return true;
+            } else if (typeof script.run === 'string') {
+                // Handle shell command
+                const { spawn } = require('child_process');
+                const dirPath = path.dirname(context.itemPath);
+                const runThingsFilesPath = path.join(dirPath, 'runThingsFiles');
+                
+                // Ensure runThingsFiles directory exists
+                if (!fs.existsSync(runThingsFilesPath)) {
+                    fs.mkdirSync(runThingsFilesPath, { recursive: true });
+                }
+
+                // Split command into program and arguments
+                const [program, ...args] = script.run.split(' ');
+                
+                // Spawn process in a new terminal window
+                const process = spawn(program, args, {
+                    stdio: ['inherit', 'pipe', 'pipe'],
+                    shell: true,
+                    cwd: runThingsFilesPath,
+                    windowsHide: false,
+                    windowsVerbatimArguments: true
+                });
+
+                let stdout = '';
+                let stderr = '';
+
+                // Capture stdout
+                process.stdout.on('data', (data) => {
+                    stdout += data.toString();
+                    // Also show in terminal
+                    process.stdout.write(data);
+                });
+
+                // Capture stderr
+                process.stderr.on('data', (data) => {
+                    stderr += data.toString();
+                    // Also show in terminal
+                    process.stderr.write(data);
+                });
+
+                // Wait for process to exit
+                return new Promise((resolve, reject) => {
+                    process.on('close', (code) => {
+                        if (code === 0) {
+                            resolve(true);
+                        } else {
+                            const error = new Error(`Process exited with code ${code}`);
+                            error.stdout = stdout;
+                            error.stderr = stderr;
+                            reject(error);
+                        }
+                    });
+                });
+            } else {
+                throw new Error('Script must export a run function or command string');
+            }
+        } catch (error) {
+            console.error('Script execution failed:', error);
+            throw error;
+        }
+    }
+
+    // Helper method to parse item using script
+    async parseItem(scriptPath, item) {
+        try {
+            const script = require(scriptPath);
+            if (typeof script.parse === 'function') {
+                return await script.parse({
+                    eagle: this.eagle,
+                    item: item,
+                    itemPath: item.filePath
+                });
+            }
+            return null;
+        } catch (error) {
+            console.error('Item parsing failed:', error);
+            throw error;
+        }
+    }
+
     renderScripts(selectedItem) {
         if (!fs.existsSync(this.runScriptsPath)) {
             fs.mkdirSync(this.runScriptsPath, { recursive: true });
@@ -129,11 +234,11 @@ class SingleItemHandler {
                 
                 try {
                     const scriptPath = path.join(this.runScriptsPath, script);
-                    const scriptModule = require(scriptPath);
+                    const scriptConfig = this.parseScriptConfig(scriptPath);
                     
                     // If the script has a filter function, use it
-                    if (typeof scriptModule.filter === 'function') {
-                        return scriptModule.filter(selectedItem);
+                    if (scriptConfig && typeof scriptConfig.filter === 'function') {
+                        return scriptConfig.filter(selectedItem);
                     }
                     
                     // No filter function means show the script
@@ -150,15 +255,17 @@ class SingleItemHandler {
 
         const scriptsList = scripts.map(script => {
             const scriptPath = path.join(this.runScriptsPath, script);
+            const scriptConfig = this.parseScriptConfig(scriptPath);
             
             return `
                 <div class="script-item" data-script-path="${scriptPath}" data-script-name="${script}">
                     <div class="script-header">
-                        <span class="script-name">${script}</span>
+                        <span class="script-name">${scriptConfig?.badge_text || script}</span>
                     </div>
                     <div class="script-actions">
                         <button class="action-btn run-script" title="Run script">▶️</button>
                         <button class="action-btn edit-script" title="Edit script">✎</button>
+                        ${scriptConfig?.parse ? '<button class="action-btn parse-item" title="Parse item">🔍</button>' : ''}
                         <div class="loading-spinner hidden">⌛</div>
                     </div>
                 </div>
@@ -277,7 +384,9 @@ class SingleItemHandler {
 
     async handleClick(e) {
         // Script actions - handle these first
-        if (e.target.classList.contains('run-script') || e.target.classList.contains('edit-script')) {
+        if (e.target.classList.contains('run-script') || 
+            e.target.classList.contains('edit-script') || 
+            e.target.classList.contains('parse-item')) {
             const scriptItem = e.target.closest('.script-item');
             if (!scriptItem) return;
 
@@ -285,6 +394,43 @@ class SingleItemHandler {
 
             if (e.target.classList.contains('edit-script')) {
                 this.eagle.shell.openPath(scriptPath);
+                return;
+            } else if (e.target.classList.contains('parse-item')) {
+                // Get elements for loading state
+                const parseButton = e.target;
+                const scriptActions = parseButton.closest('.script-actions');
+                const loadingSpinner = scriptActions.querySelector('.loading-spinner');
+                
+                // Show loading state
+                parseButton.style.display = 'none';
+                loadingSpinner.classList.remove('hidden');
+                
+                try {
+                    const result = await this.parseItem(scriptPath, this.selectedRunItem);
+                    if (result) {
+                        this.eagle.dialog.showMessageBox({
+                            type: 'info',
+                            message: 'Item parsed successfully',
+                            detail: JSON.stringify(result, null, 2)
+                        });
+                    } else {
+                        this.eagle.dialog.showMessageBox({
+                            type: 'info',
+                            message: 'No parsing result available'
+                        });
+                    }
+                } catch (error) {
+                    console.error('Item parsing failed:', error);
+                    this.eagle.dialog.showMessageBox({
+                        type: 'error',
+                        message: 'Item parsing failed',
+                        detail: error.message
+                    });
+                } finally {
+                    // Hide loading state and show parse button again
+                    loadingSpinner.classList.add('hidden');
+                    parseButton.style.display = '';
+                }
                 return;
             } else if (e.target.classList.contains('run-script')) {
                 // Get elements for loading state
@@ -297,27 +443,22 @@ class SingleItemHandler {
                 loadingSpinner.classList.remove('hidden');
                 
                 try {
-                    const script = require(scriptPath);
-                    if (typeof script.run === 'function') {
-                        await script.run({
-                            eagle: this.eagle,
-                            item: this.selectedRunItem,
-                            itemPath: this.selectedRunItem.filePath
-                        });
-                        
-                        // Refresh both files and scripts panels
-                        const filesContainer = document.querySelector('.files-list');
-                        if (filesContainer) {
-                            filesContainer.innerHTML = this.renderFiles(this.selectedRunItem);
-                        }
-                        
-                        this.eagle.dialog.showMessageBox({
-                            type: 'info',
-                            message: 'Script executed successfully'
-                        });
-                    } else {
-                        throw new Error('Script must export a run function');
+                    await this.executeScript(scriptPath, {
+                        eagle: this.eagle,
+                        item: this.selectedRunItem,
+                        itemPath: this.selectedRunItem.filePath
+                    });
+                    
+                    // Refresh both files and scripts panels
+                    const filesContainer = document.querySelector('.files-list');
+                    if (filesContainer) {
+                        filesContainer.innerHTML = this.renderFiles(this.selectedRunItem);
                     }
+                    
+                    this.eagle.dialog.showMessageBox({
+                        type: 'info',
+                        message: 'Script executed successfully'
+                    });
                 } catch (error) {
                     console.error('Script execution failed:', error);
                     this.eagle.dialog.showMessageBox({
