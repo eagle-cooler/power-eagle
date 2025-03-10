@@ -7,7 +7,7 @@ let copyMode = true;
 class SingleItemHandler {
     constructor(eagle) {
         this.eagle = eagle;
-        this.runScriptsPath = path.join(os.homedir(), 'eaglercooler', 'runscripts');
+        this.runScriptsPath = path.join(os.homedir(), '.eaglecooler', "powereagle", 'runscripts');
         this.selectedRunItem = null;
         this.initialized = false;
         this.currentContainer = null;
