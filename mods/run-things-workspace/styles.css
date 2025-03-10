@@ -1,0 +1,220 @@
+.run-things-workspace {
+    padding: 20px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.selection-message {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 12px 20px;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.selected-item-info {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+    padding: 12px 20px;
+    border: 1px solid #bbdefb;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.selected-item-info:hover {
+    background-color: #bbdefb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.selected-item-info .item-name {
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.selected-item-info .item-path {
+    color: #1976d2;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.hidden {
+    display: none;
+}
+
+.single-item-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+    min-height: 0; /* Important for scroll to work */
+}
+
+.card {
+    background: rgb(202, 195, 195);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px; /* Minimum height for cards */
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #3498db;
+}
+
+.card-header h3 {
+    margin: 0;
+    padding: 0;
+    color: #2c3e50;
+    border: none;
+}
+
+.control-btn {
+    background: none;
+    border: 1px solid #c3c6c9;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+    background-color: #a9aeb3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.files-list, .scripts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 8px;
+}
+
+/* Scrollbar styling */
+.files-list::-webkit-scrollbar,
+.scripts-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.files-list::-webkit-scrollbar-track,
+.scripts-list::-webkit-scrollbar-track {
+    background: #d3d0d0;
+    border-radius: 4px;
+}
+
+.files-list::-webkit-scrollbar-thumb,
+.scripts-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.files-list::-webkit-scrollbar-thumb:hover,
+.scripts-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.file-item, .script-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #cccdce;
+    border-radius: 4px;
+    border: 1px solid #6f7174;
+    transition: all 0.2s ease;
+}
+
+.file-item:hover, .script-item:hover {
+    background: #bec1c4;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.file-name, .script-name {
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.file-actions, .script-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+    background-color: #b1b2b4;
+}
+
+.no-selection, .no-files, .no-scripts {
+    text-align: center;
+    color: #6c757d;
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Drag and drop styles */
+.files-card {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.files-card.dragover {
+    border: 2px dashed #3498db;
+    background-color: rgba(52, 152, 219, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.files-card.dragover::after {
+    content: 'Drop files here';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2em;
+    color: #3498db;
+    pointer-events: none;
+    background-color: rgba(218, 213, 213, 0.9);
+    padding: 10px 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .run-things-workspace {
+        padding: 10px;
+    }
+    
+    .card {
+        min-height: 150px;
+    }
+} 
