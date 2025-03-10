@@ -159,6 +159,7 @@ class SingleItemHandler {
                     <div class="script-actions">
                         <button class="action-btn run-script" title="Run script">▶️</button>
                         <button class="action-btn edit-script" title="Edit script">✎</button>
+                        <div class="loading-spinner hidden">⌛</div>
                     </div>
                 </div>
             `;
@@ -286,6 +287,15 @@ class SingleItemHandler {
                 this.eagle.shell.openPath(scriptPath);
                 return;
             } else if (e.target.classList.contains('run-script')) {
+                // Get elements for loading state
+                const runButton = e.target;
+                const scriptActions = runButton.closest('.script-actions');
+                const loadingSpinner = scriptActions.querySelector('.loading-spinner');
+                
+                // Show loading state
+                runButton.style.display = 'none';
+                loadingSpinner.classList.remove('hidden');
+                
                 try {
                     const script = require(scriptPath);
                     if (typeof script.run === 'function') {
@@ -315,6 +325,10 @@ class SingleItemHandler {
                         message: 'Script execution failed',
                         detail: error.message
                     });
+                } finally {
+                    // Hide loading state and show run button again
+                    loadingSpinner.classList.add('hidden');
+                    runButton.style.display = '';
                 }
                 return;
             }
