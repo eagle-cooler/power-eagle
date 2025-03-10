@@ -1,5 +1,7 @@
 const { createApp } = Vue;
 
+const modManager = new ModManager();
+
 const app = createApp({
     data() {
         return {
@@ -36,7 +38,6 @@ const app = createApp({
         }
     },
     async mounted() {
-        const modManager = new ModManager();
         this.mods = await modManager.loadMods();
         
         // Load saved visibility states or initialize defaults
@@ -69,6 +70,8 @@ const app = createApp({
         if (this.checkTimer) {
             clearTimeout(this.checkTimer);
         }
+        // Clean up ModManager
+        modManager.cleanup();
     },
     methods: {
         saveVisibilityState() {
@@ -230,8 +233,8 @@ const app = createApp({
                 // Update installation status
                 this.isModInstalled = true;
 
-                // Reload mods
-                const modManager = new ModManager();
+                // Cleanup and reload mods
+                modManager.cleanup();
                 this.mods = await modManager.loadMods();
 
                 // Refresh visibility states
@@ -251,5 +254,6 @@ const app = createApp({
     }
 });
 
-// Mount the Vue app
-app.mount('#app');
+eagle.onPluginRun(async () => {
+    app.mount('#app');
+});

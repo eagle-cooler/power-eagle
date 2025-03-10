@@ -4,15 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Power Eagle</title>
-    <script src="../lib/vue.global.prod.js"></script>
+    <!-- Load styles first -->
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="main.css">
-    <script src="app.js"></script>
+    
+    <!-- Load Vue first -->
+    <script src="../lib/vue.global.prod.js"></script>
+    
+    <!-- Load our dependencies in order -->
     <script src="mainConstants.js"></script>
     <script src="mainModManager.js"></script>
     <script src="mainUIManager.js"></script>
+    <script src="app.js"></script>
+    
+    <!-- Load main app last with defer -->
     <script src="main.js" defer></script>
-
+    
+    <!-- Add error handling for script loading -->
+    <script>
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'SCRIPT') {
+                console.error('Failed to load script:', e.target.src);
+                alert('Failed to load required script. Please check the console for details.');
+            }
+        }, true);
+    </script>
 </head>
 <body>
     <div id="app">
