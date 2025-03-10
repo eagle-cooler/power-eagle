@@ -284,6 +284,7 @@ class ModManager {
             },
             styles: modModule.styles || [],
             isBuiltin,
+            visibility: isBuiltin ? true : modModule.visibility ?? false,
             // Use bound event handlers
             ...boundHandlers
         };

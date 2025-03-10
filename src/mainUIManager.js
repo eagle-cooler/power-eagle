@@ -1,4 +1,3 @@
-
 class UIManager {
     static async loadModContent(mod, appInstance) {
         const contentDiv = document.querySelector('.main-content > div');
@@ -18,10 +17,13 @@ class UIManager {
 
     static async _loadModsModContent(mod, contentDiv, appInstance) {
         const controlsHtml = `
-            <div class="mods-controls">
+            <div class="mods-controls" style="max-width: 800px; margin: 0 auto;">
                 <div class="menu-controls">
                     <h2>Menu Item Controls</h2>
-                    <button class="toggle-all" id="toggleAllBtn">Show/Hide All</button>
+                    <div class="controls-header" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="modFilter" class="mod-filter" placeholder="Filter mods..." style="width: 100%; padding: 8px; box-sizing: border-box;">
+                        <button class="toggle-all" id="toggleAllBtn" style="align-self: flex-start;">Show/Hide All</button>
+                    </div>
                     <div class="menu-items-control" id="menuItemsControl"></div>
                 </div>
                 ${!ModManager.isGitInstalled() ? 
@@ -32,6 +34,23 @@ class UIManager {
         contentDiv.innerHTML = controlsHtml + (mod.content || '');
         
         await this._setupModsControls(appInstance);
+        this._setupModFilter();
+    }
+
+    static _setupModFilter() {
+        const filterInput = document.getElementById('modFilter');
+        const menuItems = document.querySelectorAll('.menu-item-toggle');
+        
+        if (filterInput) {
+            filterInput.addEventListener('input', (e) => {
+                const filterText = e.target.value.toLowerCase();
+                menuItems.forEach(item => {
+                    const label = item.querySelector('label');
+                    const text = label.textContent.toLowerCase();
+                    item.style.display = text.includes(filterText) ? '' : 'none';
+                });
+            });
+        }
     }
 
     static async _setupModsControls(appInstance) {
