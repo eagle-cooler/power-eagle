@@ -234,13 +234,8 @@ class SingleItemHandler {
         const dirPath = path.dirname(item.filePath);
         const runThingsFilesPath = path.join(dirPath, 'runThingsFiles');
 
+        // Don't create folder if it doesn't exist
         if (!fs.existsSync(runThingsFilesPath)) {
-            try {
-                fs.mkdirSync(runThingsFilesPath, { recursive: true });
-            } catch (error) {
-                console.error('Failed to create runThingsFiles directory:', error);
-                return '<div class="no-files">Failed to create files directory</div>';
-            }
             return '<div class="no-files">No files available</div>';
         }
 
@@ -252,6 +247,12 @@ class SingleItemHandler {
                 });
 
             if (files.length === 0) {
+                // If folder exists but is empty, delete it
+                try {
+                    fs.rmdirSync(runThingsFilesPath);
+                } catch (error) {
+                    console.error('Failed to remove empty runThingsFiles folder:', error);
+                }
                 return '<div class="no-files">No files available</div>';
             }
 
@@ -505,10 +506,12 @@ class SingleItemHandler {
         const runThingsFilesPath = path.join(dirPath, 'runThingsFiles');
 
         try {
+            // Only create directory when files are being added
             if (!fs.existsSync(runThingsFilesPath)) {
                 fs.mkdirSync(runThingsFilesPath, { recursive: true });
             }
 
+            let successCount = 0;
             for (const file of files) {
                 const filePath = file.path;
                 const fileName = path.basename(filePath);
@@ -520,6 +523,7 @@ class SingleItemHandler {
                     } else {
                         fs.renameSync(filePath, destPath);
                     }
+                    successCount++;
                 } catch (error) {
                     console.error('File operation failed:', error);
                     this.eagle.dialog.showErrorBox(
@@ -529,17 +533,31 @@ class SingleItemHandler {
                 }
             }
 
+            // If no files were successfully added and the directory is empty, remove it
+            if (successCount === 0) {
+                try {
+                    const remainingFiles = fs.readdirSync(runThingsFilesPath);
+                    if (remainingFiles.length === 0) {
+                        fs.rmdirSync(runThingsFilesPath);
+                    }
+                } catch (error) {
+                    console.error('Failed to cleanup empty directory:', error);
+                }
+            }
+
             // Find the files list within the container
             const filesList = container.querySelector('.files-list');
             if (filesList) {
                 filesList.innerHTML = this.renderFiles(item);
             }
 
-            this.eagle.dialog.showMessageBox({
-                type: 'info',
-                message: 'Files added successfully',
-                detail: `${copyMode ? 'Copied' : 'Moved'} ${files.length} file(s) to extended files`
-            });
+            if (successCount > 0) {
+                this.eagle.dialog.showMessageBox({
+                    type: 'info',
+                    message: 'Files added successfully',
+                    detail: `${copyMode ? 'Copied' : 'Moved'} ${successCount} file(s) to extended files`
+                });
+            }
         } catch (error) {
             console.error('Failed to handle dropped files:', error);
             this.eagle.dialog.showErrorBox('Error', 'Failed to add files: ' + error.message);
