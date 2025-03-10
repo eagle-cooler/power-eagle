@@ -220,9 +220,14 @@
 }
 
 .loading-spinner {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
     animation: spin 1s infinite linear;
     margin: 0 5px;
+    transform-origin: center;
 }
 
 .loading-spinner.hidden {
