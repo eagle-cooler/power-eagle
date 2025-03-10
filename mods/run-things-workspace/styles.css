@@ -217,4 +217,23 @@
     .card {
         min-height: 150px;
     }
+}
+
+.loading-spinner {
+    display: inline-block;
+    animation: spin 1s infinite linear;
+    margin: 0 5px;
+}
+
+.loading-spinner.hidden {
+    display: none;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 } 
