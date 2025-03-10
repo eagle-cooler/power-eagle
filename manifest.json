@@ -13,6 +13,7 @@
 		"url": "src/main.html",
 		"width": 910,
 		"height": 600,
-		"alwaysOnTop" : true
+		"alwaysOnTop" : true,
+		"multiple" : false
 	}
 }
