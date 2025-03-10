@@ -1,6 +1,15 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
+// Safely check for Electron environment
+let ipcRenderer;
+try {
+    const electron = require('electron');
+    ipcRenderer = electron.ipcRenderer;
+} catch (error) {
+    console.warn('Not in Electron environment, IPC will be unavailable');
+}
+
 /**
  * @typedef {Object} EagleEventHandlers
  * @property {function(Array<Object>, Array<Object>)=} onItemSelected - Optional handler for item selection changes (newItems, oldItems)
@@ -23,6 +32,15 @@ class ModManager {
             return ModManager.instance;
         }
         
+        ModManager.instance = this;
+        
+        // Simple global exposure without IPC
+        if (typeof window !== 'undefined') {
+            window.mainModManager = this;
+        } else if (typeof global !== 'undefined') {
+            global.mainModManager = this;
+        }
+        
         this.modCache = new Map();
         this.state = {
             selectedItems: [],
@@ -31,23 +49,84 @@ class ModManager {
         };
         this.activeMods = new Set();
         this.pollingInterval = null;
+        this.globalHandlers = new Map();
         
-        // Set up library change handler
-        eagle.onLibraryChanged = (newPath, oldPath) => {
-            this.state.libraryPath = newPath;
-            if (this.loadedMods) {
-                this.loadedMods.forEach(mod => {
-                    if (!this.activeMods.has(mod.folder)) return;
-                    if (mod.onLibraryChanged) {
-                        mod.onLibraryChanged(newPath, oldPath);
-                    }
-                });
-            }
-        };
+        // Set up library change handler if eagle exists
+        if (typeof eagle !== 'undefined') {
+            eagle.onLibraryChanged = (newPath, oldPath) => {
+                this.state.libraryPath = newPath;
+                if (this.loadedMods) {
+                    this.loadedMods.forEach(mod => {
+                        if (!this.activeMods.has(mod.folder)) return;
+                        if (mod.onLibraryChanged) {
+                            mod.onLibraryChanged(newPath, oldPath);
+                        }
+                    });
+                }
+            };
 
-        // Initialize state
-        this.state.libraryPath = eagle.library.path;
-        ModManager.instance = this;
+            // Initialize state
+            this.state.libraryPath = eagle.library.path;
+        }
+    }
+
+    // Global handler registration methods
+    registerGlobalHandler(modId, eventType, handler) {
+        // Direct handler registration without IPC
+        if (!this.globalHandlers.has(modId)) {
+            this.globalHandlers.set(modId, new Map());
+        }
+        const modHandlers = this.globalHandlers.get(modId);
+        if (!modHandlers.has(eventType)) {
+            modHandlers.set(eventType, new Set());
+        }
+        modHandlers.get(eventType).add(handler);
+    }
+
+    unregisterGlobalHandler(modId, eventType, handler) {
+        const modHandlers = this.globalHandlers.get(modId);
+        if (!modHandlers) return;
+        
+        if (handler) {
+            // Remove specific handler
+            const handlers = modHandlers.get(eventType);
+            if (handlers) {
+                handlers.delete(handler);
+                if (handlers.size === 0) {
+                    modHandlers.delete(eventType);
+                }
+            }
+        } else {
+            // Remove all handlers for this event type
+            modHandlers.delete(eventType);
+        }
+
+        // Clean up if no handlers left
+        if (modHandlers.size === 0) {
+            this.globalHandlers.delete(modId);
+        }
+    }
+
+    unregisterAllGlobalHandlers(modId) {
+        this.globalHandlers.delete(modId);
+    }
+
+    // Helper method to execute global handlers
+    executeGlobalHandlers(eventType, ...args) {
+        for (const [modId, modHandlers] of this.globalHandlers) {
+            if (this.activeMods.has(modId)) {
+                const handlers = modHandlers.get(eventType);
+                if (handlers) {
+                    handlers.forEach(handler => {
+                        try {
+                            handler(...args);
+                        } catch (error) {
+                            console.error(`Error executing handler for mod ${modId}:`, error);
+                        }
+                    });
+                }
+            }
+        }
     }
 
     startPolling() {
@@ -141,6 +220,7 @@ class ModManager {
         this.stopPolling();
         this.loadedMods = [];
         this.activeMods.clear();
+        this.globalHandlers.clear();
         this.state = {
             selectedItems: [],
             selectedFolder: null,
@@ -238,6 +318,13 @@ class ModManager {
             return this.modCache.get(folder);
         }
 
+        // Ensure ModManager is available in global scope before loading mod
+        if (typeof global !== 'undefined' && !global.mainModManager) {
+            global.mainModManager = ModManager.instance;
+        } else if (typeof window !== 'undefined' && !window.mainModManager) {
+            window.mainModManager = ModManager.instance;
+        }
+
         const modPath = path.join(modsDir, folder, 'index.js');
         const modModule = require(modPath);
         
@@ -265,6 +352,7 @@ class ModManager {
                     const cleanup = await modModule.mount(container);
                     // Wrap the cleanup to handle our active state
                     return () => {
+                        this.unregisterAllGlobalHandlers(folder);
                         this.activeMods.delete(folder);
                         if (cleanup) cleanup();
                         // Stop polling if no more active mods
@@ -275,6 +363,7 @@ class ModManager {
                 }
                 // Return a cleanup function that removes from active mods
                 return () => {
+                    this.unregisterAllGlobalHandlers(folder);
                     this.activeMods.delete(folder);
                     // Stop polling if no more active mods
                     if (this.activeMods.size === 0) {
@@ -320,6 +409,40 @@ class ModManager {
         if (!items1 || !items2) return items1 === items2;
         if (items1.length !== items2.length) return false;
         return items1.every((item, index) => item.id === items2[index].id);
+    }
+
+    // Helper method to broadcast updates to renderer processes
+    broadcastUpdate() {
+        if (typeof window !== 'undefined') return; // Skip if in renderer
+        
+        const updateData = {
+            state: this.state,
+            activeMods: Array.from(this.activeMods),
+            globalHandlers: this.serializeHandlers(this.globalHandlers)
+        };
+        
+        try {
+            // Broadcast to all renderer processes
+            const electron = require('electron');
+            const windows = electron.BrowserWindow.getAllWindows();
+            windows.forEach(win => {
+                win.webContents.send('mod-manager-update', updateData);
+            });
+        } catch (error) {
+            console.warn('Failed to broadcast update:', error);
+        }
+    }
+
+    // Helper method to serialize handlers for IPC
+    serializeHandlers(handlersMap) {
+        const serialized = {};
+        for (const [modId, handlers] of handlersMap) {
+            serialized[modId] = {};
+            for (const [eventType, handlerSet] of handlers) {
+                serialized[modId][eventType] = Array.from(handlerSet);
+            }
+        }
+        return serialized;
     }
 }
 
