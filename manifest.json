@@ -8,11 +8,11 @@
 	"keywords": ["powertoys"],
 	"devTools": true,
 	"fallbackLanguage": "en",
-	"languages": ["en", "zh_TW", "zh_CN", "ja_JP", "es_ES", "ru_RU", "de_DE", "ko_KR"],
+	"languages": ["en"],
 	"main" : {
 		"url": "src/main.html",
 		"width": 910,
 		"height": 600,
-		"devTools" : true
+		"alwaysOnTop" : true
 	}
 }
