@@ -1,19 +1,19 @@
 {
-	"id": "00000000-0000-0000-0000-000000000000",
-	"version": "1.0.1",
-	"platform": "all",
-	"arch": "all",
-	"name": "Power Eagle",
-	"logo": "/logo.png",
-	"keywords": ["powertoys", "tools"],
-	"devTools": true,
-	"fallbackLanguage": "en",
-	"languages": ["en"],
-	"main" : {
-		"url": "src/main.html",
-		"width": 910,
-		"height": 650,
-		"alwaysOnTop" : true,
-		"multiple" : false
-	}
+    "id": "00000000-0000-0000-0000-000000000000",
+    "version": "1.0.1",
+    "platform": "all",
+    "arch": "all",
+    "name": "Power Eagle",
+    "logo": "/logo.png",
+    "keywords": ["powertoys", "tools"],
+    "devTools": true,
+    "fallbackLanguage": "en",
+    "languages": ["en"],
+    "main": {
+        "url": "src/main.html",
+        "width": 910,
+        "height": 650,
+        "alwaysOnTop": true,
+        "multiple": false
+    }
 }

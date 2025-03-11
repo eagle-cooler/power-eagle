@@ -1,0 +1,215 @@
+.plugin-load-container {
+    padding: 24px;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.plugin-load-container h2 {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0;
+    color: var(--color-text-primary);
+}
+
+/* Restart Notice Styles */
+.restart-notice {
+    background-color: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.2);
+    border-radius: 4px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--color-text-primary);
+    transition: all 0.3s ease;
+}
+
+.restart-notice.windows-restart {
+    cursor: pointer;
+}
+
+.restart-notice.windows-restart:hover {
+    background-color: rgba(255, 152, 0, 0.15);
+}
+
+.restart-notice.highlight {
+    background-color: rgba(255, 152, 0, 0.2);
+}
+
+.restart-notice .icon {
+    font-size: 16px;
+}
+
+.restart-notice .text {
+    font-size: 13px;
+    color: var(--color-text-primary);
+    flex: 1;
+}
+
+.restart-notice .hint {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.restart-notice.windows-restart:hover .hint {
+    opacity: 1;
+}
+
+.self-mod-card .plugin-card {
+    background-color: rgba(33, 150, 243, 0.1);
+    border: 1px solid var(--border-secondary);
+}
+
+.self-mod-card .plugin-card:hover {
+    background-color: rgba(33, 150, 243, 0.15);
+}
+
+.self-mod-card .plugin-card.error {
+    background-color: rgba(244, 67, 54, 0.1);
+}
+
+.self-mod-card .plugin-card.error:hover {
+    background-color: rgba(244, 67, 54, 0.15);
+}
+
+.plugin-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.plugin-card {
+    background-color: var(--color-bg-hover);
+    border: 1px solid var(--border-secondary);
+    border-radius: 4px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.plugin-card:hover {
+    background-color: var(--color-bg-hover);
+    opacity: 0.8;
+}
+
+.plugin-info {
+    flex: 1;
+    margin-right: 16px;
+}
+
+.plugin-info h3 {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 4px 0;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.plugin-info p {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* Toggle Switch Styles - Updated to match app theme */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-text-tertiary);
+    transition: .2s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #fff;
+    transition: .2s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+/* Error message styling */
+.plugin-cards p.no-plugins {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: 20px;
+    background-color: var(--color-bg-hover);
+    border-radius: 4px;
+    border: 1px solid var(--border-secondary);
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Modern Scrollbar Styles - inherited from app.css */
+.plugin-load-container {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-text-tertiary) transparent;
+}
+
+.plugin-load-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.plugin-load-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.plugin-load-container::-webkit-scrollbar-thumb {
+    background: var(--color-text-tertiary);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.plugin-load-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
+}
+
+/* Prevent text selection - inherited from app.css */
+.plugin-load-container,
+.plugin-card,
+.plugin-info,
+.toggle-switch {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+} 
