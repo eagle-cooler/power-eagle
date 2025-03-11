@@ -103,6 +103,7 @@
     color: var(--color-text-tertiary);
 }
 
+/* Navigation List */
 .nav-list {
     list-style: none;
     padding: 0;
@@ -115,15 +116,18 @@
     transition: all 0.3s ease;
     border-radius: 4px;
     margin: 4px 0;
+    color: var(--color-text-secondary);
 }
 
 .nav-item:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-primary);
 }
 
 .nav-item.active {
-    background-color: #007bff;
-    color: white;
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-primary);
+    font-weight: 500;
 }
 
 /* Mods Controls Styles */
@@ -147,9 +151,7 @@
 }
 
 .toggle-all {
-    width: 100%;
     padding: 10px;
-    margin-bottom: 16px;
     border: 1px solid var(--border-secondary);
     border-radius: 6px;
     background-color: transparent;
@@ -161,7 +163,7 @@
 }
 
 .toggle-all:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--color-bg-hover);
 }
 
 .menu-items-control {
@@ -180,7 +182,7 @@
 }
 
 .menu-item-toggle:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--color-bg-hover);
 }
 
 .menu-item-toggle input[type="checkbox"] {
@@ -308,6 +310,13 @@
     align-items: center;
     padding: 12px;
     border-bottom: 1px solid var(--border-secondary);
+    cursor: context-menu;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.installed-mod-item:hover {
+    background-color: var(--color-bg-secondary);
 }
 
 .installed-mod-item:last-child {
@@ -318,6 +327,8 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex: 1;
+    min-width: 0;
 }
 
 .mod-name {
@@ -329,11 +340,16 @@
 .mod-path {
     color: var(--color-text-tertiary);
     font-size: 12px;
+    word-break: break-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mod-actions {
     display: flex;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 .update-button, .remove-button {
@@ -372,5 +388,13 @@
     color: var(--color-text-tertiary);
     text-align: center;
     padding: 24px;
+    font-style: italic;
+}
+
+/* Git Warning */
+.git-warning {
+    color: var(--color-text-error);
+    margin-top: 8px;
+    font-size: 14px;
     font-style: italic;
 } 

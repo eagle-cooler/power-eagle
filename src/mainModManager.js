@@ -247,6 +247,14 @@ class ModManager {
                     const repoPath = path.join(CONSTANTS.MOD_DIRS.USER, repoFolder);
                     const gitDir = path.join(repoPath, '.git');
                     const statePath = path.join(repoPath, 'STATE');
+                    const modsPath = path.join(repoPath, 'mods');
+
+                    // Check if mods directory exists, if not, delete the folder
+                    if (!fs.existsSync(modsPath)) {
+                        console.warn(`No mods directory found in ${repoPath}, deleting folder...`);
+                        await fs.promises.rm(repoPath, { recursive: true, force: true });
+                        continue;
+                    }
 
                     // Handle git repos
                     if (fs.existsSync(gitDir) && ModManager.isGitInstalled()) {
@@ -297,6 +305,7 @@ class ModManager {
                                 // Create fresh target directory
                                 await fs.promises.mkdir(repoPath, { recursive: true });
                                 
+                                console.log('Copying local package contents from', sourcePath, 'to', repoPath);
                                 // Copy all contents from source directory
                                 await this._copyDirectory(sourcePath, repoPath);
                                 
@@ -312,17 +321,14 @@ class ModManager {
                     }
 
                     // Load mods from the mods subdirectory if it exists
-                    const modsPath = path.join(repoPath, 'mods');
-                    if (fs.existsSync(modsPath)) {
-                        const folderMods = await this._loadFromDirectory(modsPath, false);
-                        // Add repo info to each mod for proper path resolution
-                        folderMods.forEach(mod => {
-                            if (mod) {
-                                mod.repoFolder = repoFolder;
-                            }
-                        });
-                        userMods = userMods.concat(folderMods);
-                    }
+                    const folderMods = await this._loadFromDirectory(modsPath, false);
+                    // Add repo info to each mod for proper path resolution
+                    folderMods.forEach(mod => {
+                        if (mod) {
+                            mod.repoFolder = repoFolder;
+                        }
+                    });
+                    userMods = userMods.concat(folderMods);
                 }
             } catch (error) {
                 console.error('Failed to process user mods:', error);
@@ -523,16 +529,21 @@ class ModManager {
     }
 
     // Helper method to recursively copy directory contents
-    async _copyDirectory(src, dest) {
+    async _copyDirectory(src, dest, excludeGit = false) {
         const entries = await fs.promises.readdir(src, { withFileTypes: true });
         
         for (const entry of entries) {
+            // Skip .git folder if excludeGit is true
+            if (excludeGit && entry.name === '.git') {
+                continue;
+            }
+
             const srcPath = path.join(src, entry.name);
             const destPath = path.join(dest, entry.name);
             
             if (entry.isDirectory()) {
                 await fs.promises.mkdir(destPath, { recursive: true });
-                await this._copyDirectory(srcPath, destPath);
+                await this._copyDirectory(srcPath, destPath, excludeGit);
             } else {
                 await fs.promises.copyFile(srcPath, destPath);
             }

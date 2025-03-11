@@ -43,6 +43,42 @@ class UIManager {
         await this._setupModsControls(appInstance);
         this._setupModFilter();
         await this._setupLocalPackagesControls(appInstance);
+        await appInstance.loadInstalledRepos();
+
+        // Add context menu handlers to installed mod items
+        document.querySelectorAll('.installed-mod-item').forEach(item => {
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const repoName = item.querySelector('.mod-name').textContent;
+                const repo = appInstance.installedRepos.find(r => r.name === repoName);
+                
+                if (repo) {
+                    eagle.contextMenu.open([
+                        {
+                            id: "locations",
+                            label: "Open Location",
+                            submenu: [
+                                {
+                                    id: "openSource",
+                                    label: "Open Source Directory",
+                                    click: () => {
+                                        const sourcePath = repo.isGit ? repo.path : repo.sourcePath;
+                                        eagle.shell.openPath(sourcePath);
+                                    }
+                                },
+                                {
+                                    id: "openTarget",
+                                    label: "Open Target Directory",
+                                    click: () => {
+                                        eagle.shell.openPath(repo.path);
+                                    }
+                                }
+                            ]
+                        }
+                    ]);
+                }
+            });
+        });
     }
 
     static _setupModFilter() {
@@ -148,7 +184,7 @@ class UIManager {
 
                     // Create destination directory and copy mods
                     await fs.promises.mkdir(destPath, { recursive: true });
-                    await ModManager.instance._copyDirectory(modsPath, path.join(destPath, 'mods'));
+                    await ModManager.instance._copyDirectory(sourcePath, destPath, true);
                     
                     // Create STATE file with just the source path
                     fs.writeFileSync(statePath, sourcePath.trim());
@@ -157,6 +193,7 @@ class UIManager {
                     await ModManager.instance.loadMods();
                     appInstance.mods = await ModManager.instance.loadMods();
                     await this._setupModsControls(appInstance);
+                    await appInstance.loadInstalledRepos();
                 }
             } catch (error) {
                 console.error('Failed to add local package:', error);
