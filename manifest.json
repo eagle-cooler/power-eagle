@@ -5,14 +5,14 @@
 	"arch": "all",
 	"name": "Power Eagle",
 	"logo": "/logo.png",
-	"keywords": ["powertoys"],
+	"keywords": ["powertoys", "tools"],
 	"devTools": true,
 	"fallbackLanguage": "en",
 	"languages": ["en"],
 	"main" : {
 		"url": "src/main.html",
 		"width": 910,
-		"height": 600,
+		"height": 650,
 		"alwaysOnTop" : true,
 		"multiple" : false
 	}
