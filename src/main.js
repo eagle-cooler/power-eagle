@@ -4,6 +4,7 @@ let app = null;
 const modManager = new ModManager();;
 
 eagle.onPluginRun(async () => {
+  console.log(eagle.plugin);
   if (!app) {
     app = createApp({
       data() {
@@ -61,7 +62,12 @@ eagle.onPluginRun(async () => {
           .filter(([key]) => key !== "mods")
           .every(([, value]) => value);
 
-        if (this.mods.length > 0) {
+        // Set the Mods page as the default active mod
+        const modsModule = this.mods.find(mod => mod.folder === "mods");
+        if (modsModule) {
+          this.setActiveMod(modsModule);
+        } else if (this.mods.length > 0) {
+          // Fallback to first mod if mods module is not found
           this.setActiveMod(this.mods[0]);
         }
 
