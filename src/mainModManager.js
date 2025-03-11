@@ -268,7 +268,10 @@ class ModManager {
                     // Handle local packages
                     else if (fs.existsSync(statePath)) {
                         try {
-                            const sourcePath = fs.readFileSync(statePath, 'utf8').trim();  // Remove any whitespace
+                            // Read and validate STATE file first
+                            const sourcePath = fs.readFileSync(statePath, 'utf8').trim();
+                            
+                            // Validate source path exists and has mods subdirectory
                             if (!fs.existsSync(sourcePath)) {
                                 console.warn(`Source path ${sourcePath} does not exist, skipping`);
                                 continue;
@@ -278,7 +281,7 @@ class ModManager {
                                 console.warn(`Source path ${sourcePath} does not contain a mods directory, skipping`);
                                 continue;
                             }
-
+                            
                             // Check last update time
                             const lastUpdateKey = `lastUpdate_${repoFolder}`;
                             const lastUpdate = localStorage.getItem(lastUpdateKey);
@@ -286,26 +289,20 @@ class ModManager {
                             const shouldUpdate = !lastUpdate || (now - parseInt(lastUpdate)) > 24 * 60 * 60 * 1000;
 
                             if (shouldUpdate) {
-                                // Clear and recreate mods directory
-                                const destModsPath = path.join(repoPath, 'mods');
-                                if (fs.existsSync(destModsPath)) {
-                                    await fs.promises.rm(destModsPath, { recursive: true, force: true });
+                                // Delete the entire target directory
+                                if (fs.existsSync(repoPath)) {
+                                    await fs.promises.rm(repoPath, { recursive: true, force: true });
                                 }
-                                await fs.promises.mkdir(destModsPath, { recursive: true });
                                 
-                                // Copy all contents from source mods directory
-                                const entries = await fs.promises.readdir(sourceModsPath, { withFileTypes: true });
-                                for (const entry of entries) {
-                                    const srcPath = path.join(sourceModsPath, entry.name);
-                                    const destPath = path.join(destModsPath, entry.name);
-                                    if (entry.isDirectory()) {
-                                        await fs.promises.mkdir(destPath, { recursive: true });
-                                        await this._copyDirectory(srcPath, destPath);
-                                    } else {
-                                        await fs.promises.copyFile(srcPath, destPath);
-                                    }
-                                }
-
+                                // Create fresh target directory
+                                await fs.promises.mkdir(repoPath, { recursive: true });
+                                
+                                // Copy all contents from source directory
+                                await this._copyDirectory(sourcePath, repoPath);
+                                
+                                // Write the STATE file after copying
+                                fs.writeFileSync(statePath, sourcePath);
+                                
                                 // Update last update time
                                 localStorage.setItem(lastUpdateKey, now.toString());
                             }
