@@ -79,7 +79,7 @@ exit
                         version: "1.0.0",
                         devTools: false
                     };
-                    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+                    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
                 }
 
                 selfModContainer.innerHTML = `
@@ -203,7 +203,7 @@ exit
                     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
                     manifest.devTools = toggle.checked;
                     
-                    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+                    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
 
                     // Show restart notice more prominently
                     const notice = container.querySelector('.restart-notice');
