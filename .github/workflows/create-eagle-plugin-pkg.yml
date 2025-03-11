@@ -1,0 +1,119 @@
+name: Create Eagle Plugin package
+
+on:
+  push:
+    paths:
+      - 'manifest.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write 
+
+env:
+  PATH_TO_PACKAGE: "."  # Declare the path variable here
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install zip
+      run: sudo apt-get install zip
+
+    - name: Read manifest.json
+      id: read_manifest
+      run: |
+        # First check if name contains localization markers
+        raw_name=$(jq -r '.name' ${{ env.PATH_TO_PACKAGE }}/manifest.json)
+        if [[ "$raw_name" == *"{{"* ]]; then
+          # If name is localized, get it from _locales/en.json
+          manifest_name=$(jq -r '.manifest.app.name' ${{ env.PATH_TO_PACKAGE }}/_locales/en.json)
+          echo "Using localized name from ${{ env.PATH_TO_PACKAGE }}/_locales/en.json"
+        else
+          # Otherwise use the raw name from manifest.json
+          manifest_name=$raw_name
+        fi
+        # Get version as before
+        manifest_version=$(jq -r '.version' ${{ env.PATH_TO_PACKAGE }}/manifest.json)
+        # Set environment variables
+        echo "MANIFEST_NAME=$manifest_name" >> $GITHUB_ENV
+        echo "MANIFEST_VERSION=$manifest_version" >> $GITHUB_ENV
+
+    - name: Check if release exists
+      id: check_release
+      run: |
+        release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ env.MANIFEST_VERSION }}" | jq -r '.id')
+        if [ "$release_id" != "null" ]; then
+          echo "Release already exists. Exiting."
+          exit 0
+        fi
+
+    - name: Create Production manifest
+      run: |
+        cp ${{ env.PATH_TO_PACKAGE }}/manifest.json ${{ env.PATH_TO_PACKAGE }}/manifest.prod.json
+        jq '.devTools = false' ${{ env.PATH_TO_PACKAGE }}/manifest.prod.json > ${{ env.PATH_TO_PACKAGE }}/manifest.temp.json && mv ${{ env.PATH_TO_PACKAGE }}/manifest.temp.json ${{ env.PATH_TO_PACKAGE }}/manifest.prod.json
+
+    - name: Create Debug manifest
+      run: |
+        cp ${{ env.PATH_TO_PACKAGE }}/manifest.json ${{ env.PATH_TO_PACKAGE }}/manifest.debug.json
+        jq '.devTools = true' ${{ env.PATH_TO_PACKAGE }}/manifest.debug.json > ${{ env.PATH_TO_PACKAGE }}/manifest.temp.json && mv ${{ env.PATH_TO_PACKAGE }}/manifest.temp.json ${{ env.PATH_TO_PACKAGE }}/manifest.debug.json
+
+    - name: Zip files
+      run: |
+        # Production zip
+        zip -r "${{ env.MANIFEST_NAME }}.eagleplugin" ${{ env.PATH_TO_PACKAGE }}/* \
+            -x ".*" -x ".*/**" -x "${{ env.PATH_TO_PACKAGE }}/docs/*" -x "${{ env.PATH_TO_PACKAGE }}/docs-asset/*" \
+            -x "${{ env.PATH_TO_PACKAGE }}/manifest.json" -x "${{ env.PATH_TO_PACKAGE }}/manifest.debug.json" \
+            -x "*.eagleplugin" -x "${{ env.PATH_TO_PACKAGE }}/tests/*"
+        mv ${{ env.PATH_TO_PACKAGE }}/manifest.prod.json ${{ env.PATH_TO_PACKAGE }}/manifest.json
+        zip -u "${{ env.MANIFEST_NAME }}.eagleplugin" ${{ env.PATH_TO_PACKAGE }}/manifest.json
+
+        # Debug zip
+        zip -r "${{ env.MANIFEST_NAME }}-debug.eagleplugin" ${{ env.PATH_TO_PACKAGE }}/* \
+            -x ".*" -x ".*/**" -x "${{ env.PATH_TO_PACKAGE }}/docs/*" -x "${{ env.PATH_TO_PACKAGE }}/docs-asset/*" \
+            -x "${{ env.PATH_TO_PACKAGE }}/manifest.json" -x "${{ env.PATH_TO_PACKAGE }}/manifest.prod.json" \
+            -x "*.eagleplugin" -x "${{ env.PATH_TO_PACKAGE }}/tests/*"
+        mv ${{ env.PATH_TO_PACKAGE }}/manifest.debug.json ${{ env.PATH_TO_PACKAGE }}/manifest.json
+        zip -u "${{ env.MANIFEST_NAME }}-debug.eagleplugin" ${{ env.PATH_TO_PACKAGE }}/manifest.json
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: "v${{ env.MANIFEST_VERSION }}"
+        release_name: "v${{ env.MANIFEST_VERSION }}"
+        draft: false
+        prerelease: false
+
+    - name: Upload Production Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./${{ env.MANIFEST_NAME }}.eagleplugin
+        asset_name: ${{ env.MANIFEST_NAME }}-${{ env.MANIFEST_VERSION }}.eagleplugin
+        asset_content_type: application/zip
+
+    - name: Upload Debug Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./${{ env.MANIFEST_NAME }}-debug.eagleplugin
+        asset_name: ${{ env.MANIFEST_NAME }}-${{ env.MANIFEST_VERSION }}-debug.eagleplugin
+        asset_content_type: application/zip
