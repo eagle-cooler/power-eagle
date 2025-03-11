@@ -87,7 +87,7 @@
                         <div v-for="repo in installedRepos" :key="repo.name" class="installed-mod-item">
                             <div class="mod-info">
                                 <span class="mod-name">{{ repo.name }}</span>
-                                <span class="mod-path">{{ repo.path }}</span>
+                                <span class="mod-path">{{ repo.isGit ? repo.path : repo.sourcePath }}</span>
                             </div>
                             <div class="mod-actions">
                                 <button 

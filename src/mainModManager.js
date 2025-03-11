@@ -239,48 +239,96 @@ class ModManager {
             const builtinMods = await this._loadFromDirectory(CONSTANTS.MOD_DIRS.BUILTIN, true);
             let userMods = [];
             
-            if (ModManager.isGitInstalled()) {
-                try {
-                    const dirents = await fs.promises.readdir(CONSTANTS.MOD_DIRS.USER, { withFileTypes: true });
-                    const repoFolders = dirents.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+            try {
+                const dirents = await fs.promises.readdir(CONSTANTS.MOD_DIRS.USER, { withFileTypes: true });
+                const repoFolders = dirents.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
-                    for (const repoFolder of repoFolders) {
-                        const repoPath = path.join(CONSTANTS.MOD_DIRS.USER, repoFolder);
-                        const gitDir = path.join(repoPath, '.git');
+                for (const repoFolder of repoFolders) {
+                    const repoPath = path.join(CONSTANTS.MOD_DIRS.USER, repoFolder);
+                    const gitDir = path.join(repoPath, '.git');
+                    const statePath = path.join(repoPath, 'STATE');
 
-                        if (fs.existsSync(gitDir)) {
-                            // Check last pull time
-                            const lastPullKey = `lastPull_${repoFolder}`;
-                            const lastPull = localStorage.getItem(lastPullKey);
-                            const now = Date.now();
-                            const shouldPull = !lastPull || (now - parseInt(lastPull)) > 24 * 60 * 60 * 1000;
+                    // Handle git repos
+                    if (fs.existsSync(gitDir) && ModManager.isGitInstalled()) {
+                        // Check last pull time
+                        const lastPullKey = `lastPull_${repoFolder}`;
+                        const lastPull = localStorage.getItem(lastPullKey);
+                        const now = Date.now();
+                        const shouldPull = !lastPull || (now - parseInt(lastPull)) > 24 * 60 * 60 * 1000;
 
-                            if (shouldPull) {
-                                try {
-                                    execSync('git pull', { cwd: repoPath, stdio: 'ignore' });
-                                    localStorage.setItem(lastPullKey, now.toString());
-                                } catch (error) {
-                                    console.error(`Failed to pull updates for ${repoFolder}:`, error);
-                                }
-                            }
-
-                            // Load mods from the mods subdirectory if it exists
-                            const modsPath = path.join(repoPath, 'mods');
-                            if (fs.existsSync(modsPath)) {
-                                const folderMods = await this._loadFromDirectory(modsPath, false);
-                                // Add repo info to each mod for proper path resolution
-                                folderMods.forEach(mod => {
-                                    if (mod) {
-                                        mod.repoFolder = repoFolder;
-                                    }
-                                });
-                                userMods = userMods.concat(folderMods);
+                        if (shouldPull) {
+                            try {
+                                execSync('git pull', { cwd: repoPath, stdio: 'ignore' });
+                                localStorage.setItem(lastPullKey, now.toString());
+                            } catch (error) {
+                                console.error(`Failed to pull updates for ${repoFolder}:`, error);
                             }
                         }
                     }
-                } catch (error) {
-                    console.error('Failed to process user mods:', error);
+                    // Handle local packages
+                    else if (fs.existsSync(statePath)) {
+                        try {
+                            const sourcePath = fs.readFileSync(statePath, 'utf8').trim();  // Remove any whitespace
+                            if (!fs.existsSync(sourcePath)) {
+                                console.warn(`Source path ${sourcePath} does not exist, skipping`);
+                                continue;
+                            }
+                            const sourceModsPath = path.join(sourcePath, 'mods');
+                            if (!fs.existsSync(sourceModsPath)) {
+                                console.warn(`Source path ${sourcePath} does not contain a mods directory, skipping`);
+                                continue;
+                            }
+
+                            // Check last update time
+                            const lastUpdateKey = `lastUpdate_${repoFolder}`;
+                            const lastUpdate = localStorage.getItem(lastUpdateKey);
+                            const now = Date.now();
+                            const shouldUpdate = !lastUpdate || (now - parseInt(lastUpdate)) > 24 * 60 * 60 * 1000;
+
+                            if (shouldUpdate) {
+                                // Clear and recreate mods directory
+                                const destModsPath = path.join(repoPath, 'mods');
+                                if (fs.existsSync(destModsPath)) {
+                                    await fs.promises.rm(destModsPath, { recursive: true, force: true });
+                                }
+                                await fs.promises.mkdir(destModsPath, { recursive: true });
+                                
+                                // Copy all contents from source mods directory
+                                const entries = await fs.promises.readdir(sourceModsPath, { withFileTypes: true });
+                                for (const entry of entries) {
+                                    const srcPath = path.join(sourceModsPath, entry.name);
+                                    const destPath = path.join(destModsPath, entry.name);
+                                    if (entry.isDirectory()) {
+                                        await fs.promises.mkdir(destPath, { recursive: true });
+                                        await this._copyDirectory(srcPath, destPath);
+                                    } else {
+                                        await fs.promises.copyFile(srcPath, destPath);
+                                    }
+                                }
+
+                                // Update last update time
+                                localStorage.setItem(lastUpdateKey, now.toString());
+                            }
+                        } catch (error) {
+                            console.error(`Failed to update local package ${repoFolder}:`, error);
+                        }
+                    }
+
+                    // Load mods from the mods subdirectory if it exists
+                    const modsPath = path.join(repoPath, 'mods');
+                    if (fs.existsSync(modsPath)) {
+                        const folderMods = await this._loadFromDirectory(modsPath, false);
+                        // Add repo info to each mod for proper path resolution
+                        folderMods.forEach(mod => {
+                            if (mod) {
+                                mod.repoFolder = repoFolder;
+                            }
+                        });
+                        userMods = userMods.concat(folderMods);
+                    }
                 }
+            } catch (error) {
+                console.error('Failed to process user mods:', error);
             }
 
             const allMods = this._sortMods([...builtinMods, ...userMods]);
@@ -326,7 +374,39 @@ class ModManager {
         }
 
         const modPath = path.join(modsDir, folder, 'index.js');
-        const modModule = require(modPath);
+        const htmlPath = path.join(modsDir, folder, 'index.html');
+        
+        let modModule;
+        let htmlContent = '';
+        
+        // Try loading HTML file first
+        if (fs.existsSync(htmlPath)) {
+            htmlContent = fs.readFileSync(htmlPath, 'utf8');
+        }
+        
+        // Load JS module if it exists
+        if (fs.existsSync(modPath)) {
+            modModule = require(modPath);
+        } else if (!htmlContent) {
+            throw new Error('Neither index.js nor index.html found in mod folder');
+        } else {
+            modModule = {};
+        }
+
+        // Handle render content
+        if (modModule.render) {
+            if (typeof modModule.render === 'function') {
+                htmlContent = modModule.render() || htmlContent;
+            } else if (typeof modModule.render === 'string') {
+                // If render is a path, load that file's content
+                const renderPath = path.join(modsDir, folder, modModule.render);
+                if (fs.existsSync(renderPath)) {
+                    htmlContent = fs.readFileSync(renderPath, 'utf8');
+                } else {
+                    console.warn(`Render path ${renderPath} not found for mod ${folder}`);
+                }
+            }
+        }
         
         // Bind event handlers to preserve context
         const boundHandlers = {
@@ -338,7 +418,7 @@ class ModManager {
         const modData = {
             name: modModule.name || folder,
             folder,
-            content: modModule.render ? modModule.render() : '',
+            content: htmlContent,
             mount: async (container) => {
                 // Mark mod as active when mounted
                 this.activeMods.add(folder);
@@ -443,6 +523,23 @@ class ModManager {
             }
         }
         return serialized;
+    }
+
+    // Helper method to recursively copy directory contents
+    async _copyDirectory(src, dest) {
+        const entries = await fs.promises.readdir(src, { withFileTypes: true });
+        
+        for (const entry of entries) {
+            const srcPath = path.join(src, entry.name);
+            const destPath = path.join(dest, entry.name);
+            
+            if (entry.isDirectory()) {
+                await fs.promises.mkdir(destPath, { recursive: true });
+                await this._copyDirectory(srcPath, destPath);
+            } else {
+                await fs.promises.copyFile(srcPath, destPath);
+            }
+        }
     }
 }
 

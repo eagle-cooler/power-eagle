@@ -172,14 +172,30 @@ eagle.onPluginRun(async () => {
             this.installedRepos = await Promise.all(
               repoFolders.map(async (folder) => {
                 const repoPath = path.join(CONSTANTS.MOD_DIRS.USER, folder);
-                const gitDir = path.join(repoPath, ".git");
-                const modsDir = path.join(repoPath, "mods");
+                const gitDir = path.join(repoPath, '.git');
+                const statePath = path.join(repoPath, 'STATE');
+                const modsDir = path.join(repoPath, 'mods');
 
-                if (fs.existsSync(gitDir) && fs.existsSync(modsDir)) {
+                if (!fs.existsSync(modsDir)) return null;
+
+                // Git repository
+                if (fs.existsSync(gitDir)) {
                   return {
                     name: folder,
                     path: repoPath,
                     updating: false,
+                    isGit: true
+                  };
+                }
+                // Local package
+                else if (fs.existsSync(statePath)) {
+                  const sourcePath = fs.readFileSync(statePath, 'utf8').trim();
+                  return {
+                    name: folder,
+                    path: repoPath,
+                    sourcePath: sourcePath,
+                    updating: false,
+                    isGit: false
                   };
                 }
                 return null;
@@ -195,20 +211,38 @@ eagle.onPluginRun(async () => {
         async updateMod(repo) {
           try {
             repo.updating = true;
-            execSync("git pull", {
-              cwd: repo.path,
-              stdio: "ignore",
-            });
+            
+            if (repo.isGit) {
+              // Update git repository
+              execSync("git pull", {
+                cwd: repo.path,
+                stdio: "ignore",
+              });
+            } else {
+              // Update local package by copying from source
+              const sourcePath = repo.sourcePath;
+              const sourceModsPath = path.join(sourcePath, 'mods');
+              const destModsPath = path.join(repo.path, 'mods');
+
+              if (!fs.existsSync(sourceModsPath)) {
+                throw new Error('Source mods directory not found');
+              }
+
+              // Clear and recreate mods directory
+              if (fs.existsSync(destModsPath)) {
+                await fs.promises.rm(destModsPath, { recursive: true, force: true });
+              }
+              await fs.promises.mkdir(destModsPath, { recursive: true });
+
+              // Copy all contents from source mods directory
+              await ModManager.instance._copyDirectory(sourceModsPath, destModsPath);
+            }
 
             // Reload mods to reflect changes
-            const modManager = new ModManager();
             this.mods = await modManager.loadMods();
-
-            // Update last pull time
-            const lastPullKey = `lastPull_${repo.name}`;
-            localStorage.setItem(lastPullKey, Date.now().toString());
           } catch (error) {
             console.error(`Failed to update mod ${repo.name}:`, error);
+            alert(`Failed to update ${repo.name}: ${error.message}`);
           } finally {
             repo.updating = false;
           }
@@ -224,16 +258,18 @@ eagle.onPluginRun(async () => {
               this.installedRepos.splice(index, 1);
             }
 
-            // Remove last pull time from localStorage
-            const lastPullKey = `lastPull_${repo.name}`;
-            localStorage.removeItem(lastPullKey);
+            // Remove last pull time from localStorage if it's a git repo
+            if (repo.isGit) {
+              const lastPullKey = `lastPull_${repo.name}`;
+              localStorage.removeItem(lastPullKey);
+            }
 
             // Reload mods to reflect changes
             const modManager = new ModManager();
             this.mods = await modManager.loadMods();
 
             // Update installation status if this was the current repo
-            if (this.modRepoUrl.endsWith(repo.name)) {
+            if (repo.isGit && this.modRepoUrl.endsWith(repo.name)) {
               this.isModInstalled = false;
             }
           } catch (error) {
@@ -284,3 +320,4 @@ eagle.onPluginRun(async () => {
   
   app.mount("#app");
 });
+

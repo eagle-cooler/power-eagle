@@ -29,12 +29,20 @@ class UIManager {
                 ${!ModManager.isGitInstalled() ? 
                     '<div class="git-warning">Git is not installed. Loading external mods is not supported.</div>' 
                     : ''}
+
+                <div class="menu-controls" style="margin-top: 30px;">
+                    <h2>Add Local Package</h2>
+                    <div class="controls-header" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="addLocalPackage" class="toggle-all">Select Directory</button>
+                    </div>
+                </div>
             </div>
         `;
         contentDiv.innerHTML = controlsHtml + (mod.content || '');
         
         await this._setupModsControls(appInstance);
         this._setupModFilter();
+        await this._setupLocalPackagesControls(appInstance);
     }
 
     static _setupModFilter() {
@@ -104,6 +112,56 @@ class UIManager {
                 link.href = `file://${absolutePath.replace(/\\/g, '/')}`;
             }
             document.head.appendChild(link);
+        });
+    }
+
+    static async _setupLocalPackagesControls(appInstance) {
+        const addBtn = document.getElementById('addLocalPackage');
+        if (!addBtn) return;
+
+        // Add package handler
+        addBtn.addEventListener('click', async () => {
+            try {
+                // Open directory selector dialog
+                const result = await eagle.dialog.showOpenDialog({
+                    properties: ['openDirectory']
+                });
+
+                if (!result.canceled && result.filePaths.length > 0) {
+                    const sourcePath = result.filePaths[0];
+                    const modsPath = path.join(sourcePath, 'mods');
+                    
+                    if (!fs.existsSync(modsPath)) {
+                        alert('Selected directory must contain a "mods" subfolder');
+                        return;
+                    }
+
+                    const name = path.basename(sourcePath);
+                    const destPath = path.join(CONSTANTS.MOD_DIRS.USER, name);
+                    const statePath = path.join(destPath, 'STATE');
+
+                    // Check if destination already exists
+                    if (fs.existsSync(destPath)) {
+                        alert('A package with this name already exists');
+                        return;
+                    }
+
+                    // Create destination directory and copy mods
+                    await fs.promises.mkdir(destPath, { recursive: true });
+                    await ModManager.instance._copyDirectory(modsPath, path.join(destPath, 'mods'));
+                    
+                    // Create STATE file with just the source path
+                    fs.writeFileSync(statePath, sourcePath.trim());
+                    
+                    // Reload mods to show the new package
+                    await ModManager.instance.loadMods();
+                    appInstance.mods = await ModManager.instance.loadMods();
+                    await this._setupModsControls(appInstance);
+                }
+            } catch (error) {
+                console.error('Failed to add local package:', error);
+                alert('Failed to add local package');
+            }
         });
     }
 }
