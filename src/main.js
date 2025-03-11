@@ -218,6 +218,9 @@ eagle.onPluginRun(async () => {
                 cwd: repo.path,
                 stdio: "ignore",
               });
+
+              // Update last pull time
+              localStorage.setItem(`lastPull_${repo.name}`, Date.now().toString());
             } else {
               // Update local package by copying from source
               const sourcePath = repo.sourcePath;
@@ -236,10 +239,22 @@ eagle.onPluginRun(async () => {
 
               // Copy all contents from source mods directory
               await ModManager.instance._copyDirectory(sourceModsPath, destModsPath);
+
+              // Update last update time
+              localStorage.setItem(`lastUpdate_${repo.name}`, Date.now().toString());
             }
 
-            // Reload mods to reflect changes
+            // Cleanup and reload mods
+            modManager.cleanup();
             this.mods = await modManager.loadMods();
+
+            // Refresh visibility states
+            this.mods.forEach((mod) => {
+              if (!this.modVisibility.hasOwnProperty(mod.folder)) {
+                this.modVisibility[mod.folder] = !mod.isBuiltin;
+              }
+            });
+            this.saveVisibilityState();
           } catch (error) {
             console.error(`Failed to update mod ${repo.name}:`, error);
             alert(`Failed to update ${repo.name}: ${error.message}`);
@@ -248,6 +263,19 @@ eagle.onPluginRun(async () => {
           }
         },
         async removeMod(repo) {
+          // Show confirmation dialog
+          const confirmed = await eagle.dialog.showMessageBox({
+            type: 'question',
+            buttons: ['Yes', 'No'],
+            title: 'Confirm Removal',
+            message: `Are you sure you want to remove ${repo.name}?`,
+            detail: repo.isGit ? 
+              'This will remove the git repository and all its mods.' :
+              'This will remove the local package and all its mods.'
+          });
+
+          if (confirmed.response !== 0) return; // User clicked No
+
           try {
             // Remove the repository directory
             await fs.promises.rm(repo.path, { recursive: true, force: true });
@@ -258,22 +286,32 @@ eagle.onPluginRun(async () => {
               this.installedRepos.splice(index, 1);
             }
 
-            // Remove last pull time from localStorage if it's a git repo
+            // Remove last pull/update time from localStorage
             if (repo.isGit) {
-              const lastPullKey = `lastPull_${repo.name}`;
-              localStorage.removeItem(lastPullKey);
+              localStorage.removeItem(`lastPull_${repo.name}`);
+            } else {
+              localStorage.removeItem(`lastUpdate_${repo.name}`);
             }
 
-            // Reload mods to reflect changes
-            const modManager = new ModManager();
+            // Cleanup and reload mods
+            modManager.cleanup();
             this.mods = await modManager.loadMods();
 
-            // Update installation status if this was the current repo
+            // Refresh visibility states
+            this.mods.forEach((mod) => {
+              if (!this.modVisibility.hasOwnProperty(mod.folder)) {
+                this.modVisibility[mod.folder] = !mod.isBuiltin;
+              }
+            });
+            this.saveVisibilityState();
+
+            // Update installation status if this was the current git repo
             if (repo.isGit && this.modRepoUrl.endsWith(repo.name)) {
               this.isModInstalled = false;
             }
           } catch (error) {
             console.error(`Failed to remove mod ${repo.name}:`, error);
+            alert(`Failed to remove ${repo.name}: ${error.message}`);
           }
         },
         async installMod() {
@@ -287,11 +325,34 @@ eagle.onPluginRun(async () => {
               });
             }
 
-            // Clone the repository
-            execSync(`git clone ${this.modRepoUrl}`, {
-              cwd: CONSTANTS.MOD_DIRS.USER,
-              stdio: "ignore",
-            });
+            // Check if directory already exists
+            if (fs.existsSync(modPath)) {
+              alert(`A mod with name "${repoName}" already exists`);
+              return;
+            }
+
+            try {
+              // Clone the repository with stderr piped to a buffer
+              const result = execSync(`git clone ${this.modRepoUrl}`, {
+                cwd: CONSTANTS.MOD_DIRS.USER,
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'pipe']
+              });
+            } catch (gitError) {
+              // If git command fails, show the error message and clean up
+              if (fs.existsSync(modPath)) {
+                await fs.promises.rm(modPath, { recursive: true, force: true });
+              }
+              throw new Error(`Git clone failed: ${gitError.stderr || gitError.message}`);
+            }
+
+            // Verify the mods directory exists
+            const modsPath = path.join(modPath, "mods");
+            if (!fs.existsSync(modsPath)) {
+              // Clean up if no mods directory
+              await fs.promises.rm(modPath, { recursive: true, force: true });
+              throw new Error(`Repository "${repoName}" does not contain a mods directory`);
+            }
 
             // Update installation status
             this.isModInstalled = true;
@@ -310,8 +371,11 @@ eagle.onPluginRun(async () => {
 
             // Reload installed repos list
             await this.loadInstalledRepos();
+
+            alert(`Successfully installed ${repoName}`);
           } catch (error) {
             console.error("Failed to install mod:", error);
+            alert(`Failed to install mod: ${error.message}`);
           }
         },
       },
