@@ -307,7 +307,7 @@ class ModManager {
                                 
                                 console.log('Copying local package contents from', sourcePath, 'to', repoPath);
                                 // Copy all contents from source directory
-                                await this._copyDirectory(sourcePath, repoPath);
+                                await this._copyDirectory(sourcePath, repoPath, true);
                                 
                                 // Write the STATE file after copying
                                 fs.writeFileSync(statePath, sourcePath);

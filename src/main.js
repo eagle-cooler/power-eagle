@@ -238,7 +238,7 @@ eagle.onPluginRun(async () => {
               await fs.promises.mkdir(destModsPath, { recursive: true });
 
               // Copy all contents from source mods directory
-              await ModManager.instance._copyDirectory(sourceModsPath, destModsPath);
+              await ModManager.instance._copyDirectory(sourceModsPath, destModsPath, true);
 
               // Update last update time
               localStorage.setItem(`lastUpdate_${repo.name}`, Date.now().toString());
