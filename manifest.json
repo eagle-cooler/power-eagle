@@ -1,5 +1,5 @@
 {
-    "id": "5cef2ac5-9d8f-46cb-b0ad-0000dd99d327",
+    "id": "zxxxxxx",
     "version": "1.2.1",
     "platform": "all",
     "arch": "all",
@@ -9,7 +9,7 @@
         "powertoys",
         "tools"
     ],
-    "devTools": false,
+    "devTools": true,
     "fallbackLanguage": "en",
     "languages": [
         "en"
@@ -19,6 +19,7 @@
         "width": 910,
         "height": 650,
         "alwaysOnTop": true,
-        "multiple": false
+        "multiple": false,
+        "devTools": true
     }
 }
