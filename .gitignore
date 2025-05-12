@@ -1,1 +1,3 @@
 *.eagleplugin
+/node_modules
+/dist
