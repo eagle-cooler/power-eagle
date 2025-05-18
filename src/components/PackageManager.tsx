@@ -20,6 +20,7 @@ const PackageManager: React.FC = () => {
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Create default local bucket
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const localBucket = new ModBucket({
     type: "bucket",
     pkgs: [],
@@ -36,7 +37,7 @@ const PackageManager: React.FC = () => {
       }
     };
     loadData();
-  }, []);
+  }, [localBucket]);
 
   useEffect(() => {
     if (selectedBucket) {

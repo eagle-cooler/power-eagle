@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TabBar from "./components/TabBar";
 import SearchBar from "./components/SearchBar";
 import PackageManager from "./components/PackageManager";
 import { POWER_EAGLE_PATH } from "./modMgr/utils";
+import { localMgr, TabHistoryItem } from "./modMgr/localMgr";
 import ModHost from "./components/ModHost";
 
 interface Tab {
@@ -12,18 +13,41 @@ interface Tab {
 }
 
 function App() {
-  console.log(POWER_EAGLE_PATH)
+  console.log(POWER_EAGLE_PATH);
   const [tabs, setTabs] = useState<Tab[]>([
     { id: "search", title: "Search", isBuiltin: true },
     { id: "packages", title: "Package Manager", isBuiltin: true },
   ]);
   const [activeTab, setActiveTab] = useState<string>("search");
+  const [recentTabs, setRecentTabs] = useState<TabHistoryItem[]>([]);
+
+  useEffect(() => {
+    // Initial load of tab history
+    setRecentTabs(localMgr.getTabHistory());
+
+    // Subscribe to tab history changes
+    const handleTabHistoryChange = (history: TabHistoryItem[]) => {
+      setRecentTabs(history);
+    };
+
+    localMgr.on('tabHistoryChanged', (args: unknown) => {
+      handleTabHistoryChange(args as TabHistoryItem[]);
+    });
+
+    return () => {
+      localMgr.off('tabHistoryChanged', (args: unknown) => {
+        handleTabHistoryChange(args as TabHistoryItem[]);
+      });
+    };
+  }, []);
 
   const handleTabSelect = (tabId: string) => {
-    setTabs(prev => {
-      const exists = prev.some(t => t.id === tabId);
+    setTabs((prev) => {
+      const exists = prev.some((t) => t.id === tabId);
       if (!exists) {
-        return [...prev, { id: tabId, title: tabId }];
+        const newTab = { id: tabId, title: tabId };
+        localMgr.addToTabHistory(newTab);
+        return [...prev, newTab];
       }
       return prev;
     });
@@ -31,7 +55,8 @@ function App() {
   };
 
   const handleTabClose = (tabId: string) => {
-    setTabs(tabs.filter(tab => tab.id !== tabId));
+    setTabs((prev) => prev.filter((tab) => tab.id !== tabId));
+    localMgr.removeFromTabHistory(tabId);
     if (activeTab === tabId) {
       setActiveTab(tabs[0].id);
     }
@@ -41,8 +66,23 @@ function App() {
     switch (activeTab) {
       case "search":
         return (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <SearchBar tabs={tabs} onTabSelect={handleTabSelect} />
+          <div className="flex-1 flex flex-col items-center p-4">
+            <div className="w-full max-w-2xl mb-8">
+              <SearchBar tabs={tabs} onTabSelect={handleTabSelect} />
+              <br />
+              <h2 className="text-xl font-semibold mb-4">Recent Tabs</h2>
+              <div className="grid gap-2">
+                {recentTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabSelect(tab.id)}
+                    className="w-full p-3 text-left bg-base-200 hover:bg-base-300 rounded-lg transition-colors"
+                  >
+                    {tab.title}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         );
       case "packages":
