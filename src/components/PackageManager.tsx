@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import ModMgr from '../modMgr';
 import ModBucket from '../modMgr/bucket';
 import ModPkg from '../modMgr/pkg';
-import { localLinksJson } from "../modMgr/utils";
+import { localMgr } from "../modMgr/localMgr";
+const path = (global as unknown as { path: typeof import("path") }).path || require("path");
 
 interface PackageStatus {
   installed: boolean;
@@ -46,10 +47,10 @@ const PackageManager: React.FC = () => {
         const pkgStatus = new Map<string, PackageStatus>();
         
         if (bucket.folderName === "local") {
-          // Use persisted local links JSON file for local bucket packages
-          const localLinks = Object.entries(localLinksJson.data);
+          // Use localMgr for local bucket packages
+          const localLinks = localMgr.getLocalPackages();
 
-          localLinks.forEach(([name]) => {
+          Object.entries(localLinks).forEach(([name]) => {
             pkgStatus.set(name, {
               installed: true,
               version: "local",
@@ -144,7 +145,8 @@ const PackageManager: React.FC = () => {
 
   const handleLinkLocal = () => {
     if (linkPath.trim()) {
-      if (ModMgr.linkLocal(linkPath)) {
+      const name = path.basename(linkPath);
+      if (localMgr.addLocalPackage(name, linkPath)) {
         setLinkPath('');
         setShowLinkDialog(false);
         // Refresh the local bucket
@@ -154,9 +156,20 @@ const PackageManager: React.FC = () => {
   };
 
   const handleUnlinkLocal = (name: string) => {
-    ModMgr.unlinkLocal(name);
+    localMgr.removeLocalPackage(name);
     // Refresh the local bucket
     setSelectedBucket("local");
+  };
+
+  const truncatePath = (path: string) => {
+    if (path.length <= 50) return path;
+    const parts = path.split(/[\\/]/);
+    const lastPart = parts[parts.length - 1];
+    const parentPath = parts.slice(0, -1).join('/');
+    const truncatedParent = parentPath.length > 20 
+      ? `...${parentPath.slice(-20)}`
+      : parentPath;
+    return `${truncatedParent}/${lastPart}`;
   };
 
   return (
@@ -192,7 +205,22 @@ const PackageManager: React.FC = () => {
               <div className="flex-1">
                 <h3 className="font-medium">{name}</h3>
                 <p className="text-sm text-base-content/70">
-                  {status.installed ? `Installed: v${status.version}` : "Not installed"}
+                  {selectedBucket === "local" ? (
+                    <button
+                      className="hover:underline"
+                      onClick={() => {
+                        const pkgPath = localMgr.getLocalPackagePath(name);
+                        if (pkgPath) {
+                          eagle.shell.openPath(pkgPath);
+                        }
+                      }}
+                      title={localMgr.getLocalPackagePath(name)}
+                    >
+                      {truncatePath(localMgr.getLocalPackagePath(name) || '')}
+                    </button>
+                  ) : (
+                    status.installed ? `Installed: v${status.version}` : "Not installed"
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-4">

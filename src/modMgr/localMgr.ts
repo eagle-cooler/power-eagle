@@ -119,6 +119,29 @@ class LocalStorageManager extends EventEmitter {
         this.emit('tabHistoryChanged', []);
     }
 
+    // Local Package Management
+    getLocalPackages(): { [key: string]: string } {
+        return localLinksJson.data;
+    }
+
+    addLocalPackage(name: string, path: string): boolean {
+        if (!fs.existsSync(path)) {
+            return false;
+        }
+        localLinksJson.setValue(name, path);
+        this.emit('localPackagesChanged', localLinksJson.data);
+        return true;
+    }
+
+    removeLocalPackage(name: string): void {
+        localLinksJson.deleteValue(name);
+        this.emit('localPackagesChanged', localLinksJson.data);
+    }
+
+    getLocalPackagePath(name: string): string | undefined {
+        return localLinksJson.getValue(name);
+    }
+
     // Generic storage methods
     getItem<T>(key: string): T | null {
         const item = this.storage.getItem(key);

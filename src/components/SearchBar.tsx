@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ModMgr from '../modMgr';
-import { localLinksJson } from '../modMgr/utils';
+import { localMgr } from '../modMgr/localMgr';
 
 interface SearchBarProps {
   tabs: { id: string; title: string }[];
@@ -19,16 +19,30 @@ const SearchBar: React.FC<SearchBarProps> = ({ tabs, onTabSelect }) => {
 
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
-  // gather installed & linked packages once
-  useEffect(() => {
+  const updateSuggestions = () => {
     const pkgNames = Array.from(ModMgr.pkgs.keys());
-    const linkedNames = Object.keys(localLinksJson.data);
+    const linkedNames = Object.keys(localMgr.getLocalPackages());
     const allPkgs = Array.from(new Set([...pkgNames, ...linkedNames]));
 
     const tabsSuggestions: Suggestion[] = tabs.map(t => ({ id: t.id, title: t.title, source: 'tab' }));
     const pkgSuggestions: Suggestion[] = allPkgs.map(name => ({ id: name, title: name, source: 'package' }));
 
     setSuggestions([...tabsSuggestions, ...pkgSuggestions]);
+  };
+
+  // Initial load and listen for changes
+  useEffect(() => {
+    updateSuggestions();
+
+    const handleLocalPackagesChanged = () => {
+      updateSuggestions();
+    };
+
+    localMgr.on('localPackagesChanged', handleLocalPackagesChanged);
+
+    return () => {
+      localMgr.off('localPackagesChanged', handleLocalPackagesChanged);
+    };
   }, [tabs]);
 
   const filtered = suggestions.filter(item =>
