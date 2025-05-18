@@ -61,6 +61,13 @@ export async function createModRunnerByPath(
   switch (type) {
     case "v1": {
       const exported = (moduleExport as { default?: unknown }).default ?? moduleExport; // V1 mods typically default-export their object
+      // if on the same folder, it has a styles.css file, apply it
+      const stylesPath = path.join(path.dirname(entryPath), "styles.css");
+      if (fs.existsSync(stylesPath)) {
+        const style = document.createElement("style");
+        style.textContent = fs.readFileSync(stylesPath, "utf8");
+        document.head.appendChild(style);
+      }
 
       try {
         return new V1ModRunner(exported as V1Mod);
