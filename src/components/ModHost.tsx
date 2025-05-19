@@ -7,6 +7,9 @@ import { createModRunner, createModRunnerByPath, ModType, IModRunner } from "../
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
 const fs = (global as unknown as { fs: typeof import("fs") }).fs || require("fs");
 
+// Store runners by tab name
+const runners = new Map<string, IModRunner>();
+
 interface ModHostProps {
   name: string; // package name (tab id)
 }
@@ -15,10 +18,19 @@ const ModHost: React.FC<ModHostProps> = ({ name }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let runner: IModRunner | null = null;
     let cancelled = false;
 
     const load = async () => {
+      // If we already have a runner for this tab, just remount it
+      const existingRunner = runners.get(name);
+      if (existingRunner && containerRef.current && !cancelled) {
+        await existingRunner.mount(containerRef.current);
+        return;
+      }
+
+      // Otherwise create a new runner
+      let runner: IModRunner | null = null;
+
       // 1. installed package?
       const pkg = ModMgr.pkgs.get(name);
       if (pkg) {
@@ -47,6 +59,7 @@ const ModHost: React.FC<ModHostProps> = ({ name }) => {
       }
 
       if (runner && containerRef.current && !cancelled) {
+        runners.set(name, runner);
         await runner.mount(containerRef.current);
       }
     };
@@ -56,8 +69,10 @@ const ModHost: React.FC<ModHostProps> = ({ name }) => {
     // cleanup on unmount / tab switch
     return () => {
       cancelled = true;
+      const runner = runners.get(name);
       if (runner) {
         runner.unmount();
+        runners.delete(name);
       }
     };
   }, [name]);
