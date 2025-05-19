@@ -160,6 +160,8 @@ class LocalStorageManager extends EventEmitter {
     removeLocalPackage(name: string): void {
         localLinksJson.deleteValue(name);
         this.emit('localPackagesChanged', localLinksJson.data);
+        // Also remove from tab history
+        this.removeFromTabHistory(name);
     }
 
     getLocalPackagePath(name: string): string | undefined {
