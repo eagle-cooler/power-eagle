@@ -30,14 +30,10 @@ function App() {
       setRecentTabs(history);
     };
 
-    localMgr.on('tabHistoryChanged', (args: unknown) => {
-      handleTabHistoryChange(args as TabHistoryItem[]);
-    });
+    localMgr.on('tabHistoryChanged', handleTabHistoryChange);
 
     return () => {
-      localMgr.off('tabHistoryChanged', (args: unknown) => {
-        handleTabHistoryChange(args as TabHistoryItem[]);
-      });
+      localMgr.off('tabHistoryChanged', handleTabHistoryChange);
     };
   }, []);
 
@@ -56,7 +52,6 @@ function App() {
 
   const handleTabClose = (tabId: string) => {
     setTabs((prev) => prev.filter((tab) => tab.id !== tabId));
-    localMgr.removeFromTabHistory(tabId);
     if (activeTab === tabId) {
       setActiveTab(tabs[0].id);
     }

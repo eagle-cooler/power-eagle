@@ -19,6 +19,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ tabs, onTabSelect }) => {
 
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateSuggestions = () => {
     const pkgNames = Array.from(ModMgr.pkgs.keys());
     const linkedNames = Object.keys(localMgr.getLocalPackages());
@@ -43,7 +44,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ tabs, onTabSelect }) => {
     return () => {
       localMgr.off('localPackagesChanged', handleLocalPackagesChanged);
     };
-  }, [tabs]);
+  }, [tabs, updateSuggestions]);
 
   const filtered = suggestions.filter(item =>
     item.title.toLowerCase().includes(searchTerm.toLowerCase())
