@@ -1,12 +1,66 @@
 import ModIPC from './modIpc';
+import { IModLoader, IModRunner } from './i';
 
-interface V1Mod {
+// Use existing modules if available (for browser bundlers) otherwise require them on Node.
+const path = (global as unknown as { path: typeof import("path") }).path || require("path");
+const fs = (global as unknown as { fs: typeof import("fs") }).fs || require("fs");
+
+export interface V1Mod {
     name: string;
     render: () => string;
     mount: (container: HTMLElement) => Promise<void>;
     onLibraryChanged?: (newPath: string, oldPath: string) => void;
     onItemSelected?: (newItems: Item[], oldItems: Item[]) => void;
     onFolderSelected?: (newFolder: Folder | null, oldFolder: Folder | null) => void;
+}
+
+export class V1ModLoader implements IModLoader {
+    /**
+     * Load a JS/TS module from disk using CommonJS require.
+     */
+    private loadModule(entryPath: string): unknown {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        console.log('Loading module', entryPath);
+        return require(entryPath);
+    }
+
+    /**
+     * Load styles for a mod if they exist
+     * @param entryPath The path to the mod's entry file
+     */
+    private loadStyles(entryPath: string): void {
+        const stylesPath = path.join(path.dirname(entryPath), "styles.css");
+        if (fs.existsSync(stylesPath)) {
+            const style = document.createElement("style");
+            style.textContent = fs.readFileSync(stylesPath, "utf8");
+            document.head.appendChild(style);
+        }
+    }
+
+    async loadMod(entryPath: string, name = path.basename(path.dirname(entryPath))): Promise<IModRunner | null> {
+        if (!fs.existsSync(entryPath)) {
+            console.error(`[V1ModLoader] Entry path not found for ${name}: ${entryPath}`);
+            return null;
+        }
+
+        let moduleExport: unknown;
+        try {
+            moduleExport = this.loadModule(entryPath);
+        } catch (err) {
+            console.error(`[V1ModLoader] Failed to load module for ${name}:`, err);
+            return null;
+        }
+
+        const exported = (moduleExport as { default?: unknown }).default ?? moduleExport;
+        try {
+            // Load styles before returning the mod
+            this.loadStyles(entryPath);
+            return new V1ModRunner(exported as V1Mod);
+        } catch (err) {
+            console.error(`[V1ModLoader] Failed to instantiate mod for ${name}:`, err);
+            return null;
+        }
+    }
 }
 
 class V1ModRunner {
