@@ -1,23 +1,23 @@
-interface V1ModEventHandlers {
+interface ModEventHandlers {
     onLibraryChanged?: (newPath: string, oldPath: string) => void;
     onItemSelected?: (newItems: Item[], oldItems: Item[]) => void;
     onFolderSelected?: (newFolder: Folder | null, oldFolder: Folder | null) => void;
 }
 
-class V1ModIPC {
-    private static instance: V1ModIPC;
-    private handlers: V1ModEventHandlers | null = null;
+class ModIPC {
+    private static instance: ModIPC;
+    private handlers: ModEventHandlers | null = null;
     private intervals: NodeJS.Timeout[] = [];
 
     private constructor() {
         this.setupListeners();
     }
 
-    public static getInstance(): V1ModIPC {
-        if (!V1ModIPC.instance) {
-            V1ModIPC.instance = new V1ModIPC();
+    public static getInstance(): ModIPC {
+        if (!ModIPC.instance) {
+            ModIPC.instance = new ModIPC();
         }
-        return V1ModIPC.instance;
+        return ModIPC.instance;
     }
 
     private setupListeners() {
@@ -54,7 +54,7 @@ class V1ModIPC {
         this.intervals.push(folderInterval);
     }
 
-    public registerHandlers(handlers: V1ModEventHandlers) {
+    public registerHandlers(handlers: ModEventHandlers) {
         this.handlers = handlers;
     }
 
@@ -69,4 +69,4 @@ class V1ModIPC {
     }
 }
 
-export default V1ModIPC; 
+export default ModIPC; 

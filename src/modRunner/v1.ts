@@ -1,4 +1,4 @@
-import V1ModIPC from './v1ipc';
+import ModIPC from './modIpc';
 
 interface V1Mod {
     name: string;
@@ -12,12 +12,11 @@ interface V1Mod {
 class V1ModRunner {
     private mod: V1Mod;
     private container: HTMLElement | null = null;
-    private ipc: V1ModIPC;
-    private isVisible: boolean = true;
+    private ipc: ModIPC;
 
     constructor(mod: V1Mod) {
         this.mod = mod;
-        this.ipc = V1ModIPC.getInstance();
+        this.ipc = ModIPC.getInstance();
     }
 
     async mount(container: HTMLElement) {
@@ -36,7 +35,6 @@ class V1ModRunner {
     }
 
     setVisibility(visible: boolean) {
-        this.isVisible = visible;
         if (this.container) {
             this.container.style.display = visible ? '' : 'none';
         }
