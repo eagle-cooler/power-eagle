@@ -1,7 +1,7 @@
 import ModPkg from "../modMgr/pkg";
 import { POWER_EAGLE_PKGS_PATH } from "../modMgr/utils";
 import { IModRunner } from "./i";
-import { V1ModLoader } from "./v1";
+import { V1ModLoader, ModContext } from "./v1";
 
 // Use existing modules if available (for browser bundlers) otherwise require them on Node.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
@@ -15,7 +15,8 @@ export type ModType = "v1" | "react" | "js";
 export async function createModRunnerByPath(
   type: ModType,
   entryPath: string,
-  name = path.basename(path.dirname(entryPath))
+  name = path.basename(path.dirname(entryPath)),
+  context?: ModContext
 ): Promise<IModRunner | null> {
   switch (type) {
     case "v1": {
@@ -26,7 +27,8 @@ export async function createModRunnerByPath(
       
       const mod = await loader.loadMod(
         fs.existsSync(indexPath) ? indexPath : mainPath,
-        name
+        name,
+        context
       );
       if (!mod) {
         return null;
@@ -43,7 +45,7 @@ export async function createModRunnerByPath(
 /**
  * Convenience wrapper for installed packages (retains backward-compatibility).
  */
-export async function createModRunner(pkg: ModPkg): Promise<IModRunner | null> {
+export async function createModRunner(pkg: ModPkg, context?: ModContext): Promise<IModRunner | null> {
   const entryPath = path.join(POWER_EAGLE_PKGS_PATH, pkg.name, pkg.entryPoint);
-  return createModRunnerByPath(pkg.type, entryPath, pkg.name);
+  return createModRunnerByPath(pkg.type, entryPath, pkg.name, context);
 }

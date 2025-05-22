@@ -1,5 +1,6 @@
 import ModIPC from './modIpc';
 import { IModLoader, IModRunner } from './i';
+import { ModuleLoader, ModContext } from './moduleLoader';
 
 // Use existing modules if available (for browser bundlers) otherwise require them on Node.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
@@ -15,19 +16,12 @@ export interface V1Mod {
 }
 
 export class V1ModLoader implements IModLoader {
-    /**
-     * Load a JS/TS module from disk using CommonJS require.
-     */
-    private loadModule(entryPath: string): unknown {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        console.log('Loading module', entryPath);
-        return require(entryPath);
+    private moduleLoader: ModuleLoader;
+
+    constructor() {
+        this.moduleLoader = new ModuleLoader();
     }
 
-    /**
-     * Load styles for a mod if they exist
-     * @param entryPath The path to the mod's entry file
-     */
     private loadStyles(entryPath: string): void {
         const stylesPath = path.join(path.dirname(entryPath), "styles.css");
         if (fs.existsSync(stylesPath)) {
@@ -37,7 +31,7 @@ export class V1ModLoader implements IModLoader {
         }
     }
 
-    async loadMod(entryPath: string, name = path.basename(path.dirname(entryPath))): Promise<IModRunner | null> {
+    async loadMod(entryPath: string, name = path.basename(path.dirname(entryPath)), context?: ModContext): Promise<IModRunner | null> {
         if (!fs.existsSync(entryPath)) {
             console.error(`[V1ModLoader] Entry path not found for ${name}: ${entryPath}`);
             return null;
@@ -45,7 +39,7 @@ export class V1ModLoader implements IModLoader {
 
         let moduleExport: unknown;
         try {
-            moduleExport = this.loadModule(entryPath);
+            moduleExport = this.moduleLoader.loadModule(entryPath, context);
         } catch (err) {
             console.error(`[V1ModLoader] Failed to load module for ${name}:`, err);
             return null;
@@ -53,7 +47,6 @@ export class V1ModLoader implements IModLoader {
 
         const exported = (moduleExport as { default?: unknown }).default ?? moduleExport;
         try {
-            // Load styles before returning the mod
             this.loadStyles(entryPath);
             return new V1ModRunner(exported as V1Mod);
         } catch (err) {
