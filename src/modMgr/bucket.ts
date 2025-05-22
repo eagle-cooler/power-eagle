@@ -20,6 +20,7 @@ class ModBucket {
      * |-- * (pkg content)
      * |-- mod.json (package definition)
      * 
+     * 3. v1 - legacy mod type
      */
     type : "bucket" | "package";
     pkgs : string[];
