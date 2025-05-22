@@ -18,6 +18,8 @@ const PackageManager: React.FC = () => {
   const [packages, setPackages] = useState<Map<string, PackageStatus>>(new Map());
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkPath, setLinkPath] = useState('');
+  const [showGitDialog, setShowGitDialog] = useState(false);
+  const [gitUrl, setGitUrl] = useState('');
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Create default local bucket
@@ -33,12 +35,12 @@ const PackageManager: React.FC = () => {
     const loadData = () => {
       const bucketList = [localBucket, ...Array.from(ModMgr.buckets.values())];
       setBuckets(bucketList);
-      if (bucketList.length > 0) {
+      if (bucketList.length > 0 && !selectedBucket) {
         setSelectedBucket(bucketList[0].folderName);
       }
     };
     loadData();
-  }, [localBucket]);
+  }, [localBucket, selectedBucket]);
 
   useEffect(() => {
     if (selectedBucket) {
@@ -59,16 +61,22 @@ const PackageManager: React.FC = () => {
           });
         } else {
           // For other buckets, get packages normally
-          const bucketPkgs = bucket.getBucketPkg("", false) as ModPkg[];
-          bucketPkgs.forEach(pkg => {
-            const installedPkg = ModMgr.pkgs.get(pkg.name);
-            pkgStatus.set(pkg.name, {
-              installed: !!installedPkg,
-              version: installedPkg?.version || "",
-              bucketVersion: pkg.version,
-              needsUpdate: installedPkg ? installedPkg.version !== pkg.version : false
-            });
-          });
+          try {
+            const bucketPkgs = bucket.getBucketPkg("", false) as ModPkg[];
+            if (Array.isArray(bucketPkgs)) {
+              bucketPkgs.forEach(pkg => {
+                const installedPkg = ModMgr.pkgs.get(pkg.name);
+                pkgStatus.set(pkg.name, {
+                  installed: !!installedPkg,
+                  version: installedPkg?.version || "",
+                  bucketVersion: pkg.version,
+                  needsUpdate: installedPkg ? installedPkg.version !== pkg.version : false
+                });
+              });
+            }
+          } catch (error) {
+            console.error(`Failed to load packages for bucket ${bucket.folderName}:`, error);
+          }
         }
         
         setPackages(pkgStatus);
@@ -172,6 +180,54 @@ const PackageManager: React.FC = () => {
     return `${truncatedParent}/${lastPart}`;
   };
 
+  const handleAddGitBucket = async () => {
+    if (gitUrl.trim()) {
+      try {
+        const bucket = await ModMgr.addBucket(gitUrl);
+        if (!bucket) {
+          await eagle.dialog.showMessageBox({
+            type: 'error',
+            title: 'Failed to Add Bucket',
+            message: 'Could not add the bucket',
+            detail: 'The repository might already exist or is invalid.',
+            buttons: ['OK']
+          });
+          return;
+        }
+
+        // Validate if it's a valid bucket
+        const bucketPkgs = bucket.pkgs;
+        if (!Array.isArray(bucketPkgs) || bucketPkgs.length === 0) {
+          // Invalid bucket, remove it and show error
+          await ModMgr.removeBucket(bucket.folderName);
+          await eagle.dialog.showMessageBox({
+            type: 'error',
+            title: 'Invalid Bucket',
+            message: 'The repository is not a valid bucket',
+            detail: 'The repository must contain valid package definitions with mod.json files.',
+            buttons: ['OK']
+          });
+          return;
+        }
+
+        setGitUrl('');
+        setShowGitDialog(false);
+        // Refresh buckets
+        const bucketList = [localBucket, ...Array.from(ModMgr.buckets.values())];
+        setBuckets(bucketList);
+      } catch (error) {
+        console.error('Failed to add Git bucket:', error);
+        await eagle.dialog.showMessageBox({
+          type: 'error',
+          title: 'Failed to Add Bucket',
+          message: 'Could not add the bucket',
+          detail: error instanceof Error ? error.message : 'Unknown error occurred',
+          buttons: ['OK']
+        });
+      }
+    }
+  };
+
   return (
     <div className="flex h-full">
       {/* Left column - Bucket list */}
@@ -188,12 +244,28 @@ const PackageManager: React.FC = () => {
               } ${bucket.folderName === "local" ? 'border-b border-base-300' : ''}`}
               onClick={() => setSelectedBucket(bucket.folderName)}
             >
-              <h3 className="font-medium">{bucket.folderName}</h3>
+              <h3 className="font-medium">
+                {bucket.folderName === "local" ? "Local" : (
+                  bucket.folderName.split('_').length > 1 ? 
+                    `${bucket.folderName.split('_')[1]}` :
+                    bucket.folderName
+                )}
+              </h3>
               <p className="text-sm text-base-content/70">
                 {bucket.type === "bucket" ? "Bucket" : "Package"}
+                {bucket.folderName !== "local" && bucket.folderName.split('_').length > 1 && 
+                  ` (${bucket.folderName.split('_')[0]})`}
               </p>
             </div>
           ))}
+        </div>
+        <div className="p-4 border-t border-base-300">
+          <button
+            className="btn btn-primary w-full"
+            onClick={() => setShowGitDialog(true)}
+          >
+            Add Git Bucket
+          </button>
         </div>
       </div>
 
@@ -300,6 +372,39 @@ const PackageManager: React.FC = () => {
                 onClick={handleLinkLocal}
               >
                 Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Git Dialog */}
+      {showGitDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-base-100 p-6 rounded-lg w-96">
+            <h3 className="text-lg font-semibold mb-4">Add Git Bucket</h3>
+            <input
+              type="text"
+              className="w-full px-4 py-2 bg-base-200 rounded-lg mb-4"
+              placeholder="Enter Git repository URL"
+              value={gitUrl}
+              onChange={(e) => setGitUrl(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn"
+                onClick={() => {
+                  setShowGitDialog(false);
+                  setGitUrl('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddGitBucket}
+              >
+                Add
               </button>
             </div>
           </div>
