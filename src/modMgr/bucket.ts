@@ -90,9 +90,10 @@ class ModBucket {
             throw new Error(`Bucket ${folderName} not found`);
         }
 
-        const isPackage = fs.existsSync(path.join(bucketPath, ".git", "config"));
-        const type = isPackage ? "package" : "bucket";
-        const pkgs = isPackage ? [folderName] : 
+        // Check for mods.json to determine if it's a bucket
+        const hasModsJson = fs.existsSync(path.join(bucketPath, "mods.json"));
+        const type = hasModsJson ? "bucket" : "package";
+        const pkgs = type === "package" ? [folderName] : 
             fs.readdirSync(bucketPath)
                 .filter(file => !file.startsWith(".") && !file.startsWith("_"))
                 .filter(file => fs.statSync(path.join(bucketPath, file)).isDirectory());
@@ -161,11 +162,29 @@ class ModBucket {
         for (const pkgName of this.pkgs) {
             if (pkgName === name || pkgName.includes(name)) {
                 try {
-                    const pkg = ModPkg.loadPkg(pkgName);
-                    if (only1) {
-                        return pkg;
+                    const pkgPath = path.join(POWER_EAGLE_BUCKETS_PATH, this.folderName, pkgName);
+                    if (!fs.existsSync(pkgPath)) continue;
+
+                    // Check if it's a v1 mod (has .js files but no mod.json)
+                    const hasJsFiles = fs.readdirSync(pkgPath).some(file => file.endsWith('.js'));
+                    const hasModJson = fs.existsSync(path.join(pkgPath, 'mod.json'));
+                    
+                    if (hasJsFiles && !hasModJson) {
+                        // Create a v1 mod package
+                        const pkg = new ModPkg({
+                            name: pkgName,
+                            type: "v1",
+                            version: "1.0.0",
+                            sourcePath: pkgPath
+                        });
+                        if (only1) return pkg;
+                        results.push(pkg);
+                    } else if (hasModJson) {
+                        // Load regular package with mod.json
+                        const pkg = ModPkg.loadPkg(pkgName);
+                        if (only1) return pkg;
+                        results.push(pkg);
                     }
-                    results.push(pkg);
                 } catch (error) {
                     console.error(`Failed to load package ${pkgName}:`, error);
                 }
