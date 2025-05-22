@@ -20,7 +20,6 @@ const PackageManager: React.FC = () => {
   const [linkPath, setLinkPath] = useState('');
   const [showGitDialog, setShowGitDialog] = useState(false);
   const [gitUrl, setGitUrl] = useState('');
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Create default local bucket
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,39 +117,6 @@ const PackageManager: React.FC = () => {
     }
   };
 
-  const handleForceInstall = async (pkgName: string) => {
-    const bucket = buckets.find(b => b.folderName === selectedBucket);
-    if (bucket) {
-      const pkg = await ModMgr.installPkg(pkgName, bucket);
-      if (pkg) {
-        setPackages(prev => {
-          const next = new Map(prev);
-          next.set(pkgName, {
-            installed: true,
-            version: pkg.version,
-            bucketVersion: pkg.version,
-            needsUpdate: false
-          });
-          return next;
-        });
-      }
-    }
-  };
-
-  const handleLongPressStart = (pkgName: string) => {
-    const timer = setTimeout(() => {
-      handleForceInstall(pkgName);
-    }, 2000);
-    setLongPressTimer(timer);
-  };
-
-  const handleLongPressEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-  };
-
   const handleLinkLocal = () => {
     if (linkPath.trim()) {
       const name = path.basename(linkPath);
@@ -228,6 +194,66 @@ const PackageManager: React.FC = () => {
     }
   };
 
+  const handleReset = async (pkgName: string) => {
+    const bucket = buckets.find(b => b.folderName === selectedBucket);
+    if (bucket) {
+      try {
+        await ModMgr.resetPkg(pkgName, bucket);
+        // Refresh package status
+        const pkg = ModMgr.pkgs.get(pkgName);
+        setPackages(prev => {
+          const next = new Map(prev);
+          next.set(pkgName, {
+            installed: true,
+            version: pkg?.version || "",
+            bucketVersion: next.get(pkgName)?.bucketVersion || "",
+            needsUpdate: false
+          });
+          return next;
+        });
+      } catch (error) {
+        console.error(`Failed to reset package ${pkgName}:`, error);
+        await eagle.dialog.showMessageBox({
+          type: 'error',
+          title: 'Reset Failed',
+          message: `Could not reset ${pkgName}`,
+          detail: error instanceof Error ? error.message : 'Unknown error occurred',
+          buttons: ['OK']
+        });
+      }
+    }
+  };
+
+  const handleUpdate = async (pkgName: string) => {
+    const bucket = buckets.find(b => b.folderName === selectedBucket);
+    if (bucket) {
+      try {
+        const pkg = await ModMgr.updatePkg(pkgName, bucket);
+        if (pkg) {
+          setPackages(prev => {
+            const next = new Map(prev);
+            next.set(pkgName, {
+              installed: true,
+              version: pkg.version,
+              bucketVersion: pkg.version,
+              needsUpdate: false
+            });
+            return next;
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to update package ${pkgName}:`, error);
+        await eagle.dialog.showMessageBox({
+          type: 'error',
+          title: 'Update Failed',
+          message: `Could not update ${pkgName}`,
+          detail: error instanceof Error ? error.message : 'Unknown error occurred',
+          buttons: ['OK']
+        });
+      }
+    }
+  };
+
   return (
     <div className="flex h-full">
       {/* Left column - Bucket list */}
@@ -273,52 +299,68 @@ const PackageManager: React.FC = () => {
       <div className="w-3/4 p-4 flex flex-col">
         <div className="flex-1 overflow-y-auto">
           {Array.from(packages.entries()).map(([name, status]) => (
-            <div key={name} className="flex items-center justify-between p-4 border-b border-base-300">
-              <div className="flex-1">
-                <h3 className="font-medium">{name}</h3>
-                <p className="text-sm text-base-content/70">
+            <div key={name} className="flex flex-col p-4 border-b border-base-300">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="font-medium">{name}</h3>
+                  <p className="text-sm text-base-content/70">
+                    {selectedBucket === "local" ? (
+                      <button
+                        className="hover:underline"
+                        onClick={() => {
+                          const pkgPath = localMgr.getLocalPackagePath(name);
+                          if (pkgPath) {
+                            eagle.shell.openPath(pkgPath);
+                          }
+                        }}
+                        title={localMgr.getLocalPackagePath(name)}
+                      >
+                        {truncatePath(localMgr.getLocalPackagePath(name) || '')}
+                      </button>
+                    ) : (
+                      status.installed ? `Installed: v${status.version}` : "Not installed"
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
                   {selectedBucket === "local" ? (
                     <button
-                      className="hover:underline"
-                      onClick={() => {
-                        const pkgPath = localMgr.getLocalPackagePath(name);
-                        if (pkgPath) {
-                          eagle.shell.openPath(pkgPath);
-                        }
-                      }}
-                      title={localMgr.getLocalPackagePath(name)}
+                      className="btn btn-sm btn-error"
+                      onClick={() => handleUnlinkLocal(name)}
                     >
-                      {truncatePath(localMgr.getLocalPackagePath(name) || '')}
+                      Unlink
                     </button>
                   ) : (
-                    status.installed ? `Installed: v${status.version}` : "Not installed"
+                    <>
+                      {status.installed && (
+                        <>
+                          <button
+                            className="btn btn-sm btn-warning"
+                            onClick={() => handleReset(name)}
+                            title="Reset package to clean state"
+                          >
+                            Reset
+                          </button>
+                          {status.needsUpdate && (
+                            <button
+                              className="btn btn-sm btn-info"
+                              onClick={() => handleUpdate(name)}
+                              title="Update to latest version"
+                            >
+                              Update
+                            </button>
+                          )}
+                        </>
+                      )}
+                      <button
+                        className={`btn btn-sm ${status.installed ? 'btn-error' : 'btn-primary'}`}
+                        onClick={() => status.installed ? handleUninstall(name) : handleInstall(name)}
+                      >
+                        {status.installed ? 'Uninstall' : 'Install'}
+                      </button>
+                    </>
                   )}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                {selectedBucket === "local" ? (
-                  <button
-                    className="btn btn-sm btn-error"
-                    onClick={() => handleUnlinkLocal(name)}
-                  >
-                    Unlink
-                  </button>
-                ) : status.needsUpdate ? (
-                  <div
-                    className="w-4 h-4 rounded-full bg-red-500 cursor-pointer"
-                    onMouseDown={() => handleLongPressStart(name)}
-                    onMouseUp={handleLongPressEnd}
-                    onMouseLeave={handleLongPressEnd}
-                    title="Hold for 2s to force install"
-                  />
-                ) : (
-                  <button
-                    className={`btn btn-sm ${status.installed ? 'btn-error' : 'btn-primary'}`}
-                    onClick={() => status.installed ? handleUninstall(name) : handleInstall(name)}
-                  >
-                    {status.installed ? 'Uninstall' : 'Install'}
-                  </button>
-                )}
+                </div>
               </div>
             </div>
           ))}
@@ -339,7 +381,7 @@ const PackageManager: React.FC = () => {
               className="btn btn-error"
               onClick={() => selectedBucket && ModMgr.removeBucket(selectedBucket)}
             >
-              Remove Bucket
+              Remove
             </button>
           )}
         </div>

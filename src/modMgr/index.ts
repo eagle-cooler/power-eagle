@@ -142,6 +142,24 @@ class _ModMgr {
     return success;
   }
 
+  async resetPkg(name: string, bucket: ModBucket): Promise<void> {
+    const pkg = this.pkgs.get(name);
+    if (!pkg) return;
+    
+    // Uninstall and reinstall
+    pkg.uninstall();
+    await this.installPkg(name, bucket);
+  }
+
+  async updatePkg(name: string, bucket: ModBucket): Promise<ModPkg | null> {
+    const pkg = this.pkgs.get(name);
+    if (!pkg) return null;
+    
+    // Uninstall and reinstall to get latest version
+    pkg.uninstall();
+    return await this.installPkg(name, bucket);
+  }
+
   reset(): void {
     // Remove all buckets and packages
     for (const bucket of this.buckets.values()) {
