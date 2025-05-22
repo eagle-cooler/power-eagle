@@ -9,13 +9,13 @@
         "powertoys",
         "tools"
     ],
-    "devTools": false,
+    "devTools": true,
     "fallbackLanguage": "en",
     "languages": [
         "en"
     ],
     "main": {
-        "url": "src/main.html",
+        "url": "dist/index.html",
         "width": 910,
         "height": 650,
         "alwaysOnTop": true,
