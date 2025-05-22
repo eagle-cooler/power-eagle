@@ -14,7 +14,12 @@ import V1Mod from "../modSpecs/v1";
 import { IModRunner } from "../modRunner/i";
 
 // Map mod types to their implementations
-const modTypeImpls: Partial<Record<ModType, new () => IModRunner>> = {
+const modTypeImpls: Partial<Record<ModType, new () => IModRunner & {
+    preInstall?: (path: string) => void;
+    postInstall?: (path: string) => void;
+    preUninstall?: (path: string) => void;
+    postUninstall?: (path: string) => void;
+}>> = {
   v1: V1Mod,
 };
 
@@ -50,8 +55,32 @@ class ModPkg {
   uninstall(): boolean {
     const pkgPath = path.join(POWER_EAGLE_PKGS_PATH, this.name);
     if (!fs.existsSync(pkgPath)) return false;
-    fs.rmSync(pkgPath, { recursive: true, force: true });
-    return true;
+
+    try {
+      // Get the mod type implementation
+      const ModClass = modTypeImpls[this.type];
+      if (ModClass) {
+        // Run pre-uninstall hook if it exists
+        if ('preUninstall' in ModClass) {
+          (ModClass as { preUninstall: (path: string) => void }).preUninstall(pkgPath);
+        }
+
+        // Remove the package
+        fs.rmSync(pkgPath, { recursive: true, force: true });
+
+        // Run post-uninstall hook if it exists
+        if ('postUninstall' in ModClass) {
+          (ModClass as { postUninstall: (path: string) => void }).postUninstall(pkgPath);
+        }
+      } else {
+        // If no implementation found, just remove the package
+        fs.rmSync(pkgPath, { recursive: true, force: true });
+      }
+      return true;
+    } catch (err) {
+      console.error(`[ModPkg] Failed to uninstall ${this.name}:`, err);
+      return false;
+    }
   }
 
   link(sourcePath: string): boolean {
@@ -133,35 +162,44 @@ class ModPkg {
       return null;
     }
 
-    // Copy package files
-    fs.cpSync(pkgPath, targetPath, { recursive: true });
-
-    // Load the installed package
-    const pkg = ModPkg.loadPkg(name);
-
     try {
-      // Get the mod type implementation
-      const ModClass = modTypeImpls[pkg.type];
-      if (!ModClass) {
-        throw new Error(`No implementation found for mod type ${pkg.type}`);
+      // Get the mod type from source path
+      const modType = await ModPkg.getType(pkgPath);
+      if (!modType) {
+        throw new Error(`Could not determine mod type for ${name}`);
       }
 
-      // Create instance and run post-installation
-      const mod = new ModClass();
-      const success = await mod.postInstall(targetPath);
-      if (!success) {
-        // Clean up the installation if post-installation fails
-        fs.rmSync(targetPath, { recursive: true, force: true });
-        return null;
+      // Get the mod type implementation
+      const ModClass = modTypeImpls[modType];
+      if (!ModClass) {
+        throw new Error(`No implementation found for mod type ${modType}`);
       }
+
+      // Run pre-installation hook if it exists
+      if ('preInstall' in ModClass) {
+        (ModClass as { preInstall: (path: string) => void }).preInstall(targetPath);
+      }
+
+      // Copy package files
+      fs.cpSync(pkgPath, targetPath, { recursive: true });
+
+      // Run post-installation hook if it exists
+      if ('postInstall' in ModClass) {
+        (ModClass as { postInstall: (path: string) => void }).postInstall(targetPath);
+      }
+
+      // Load the installed package
+      const pkg = ModPkg.loadPkg(name);
+      return pkg;
+
     } catch (err) {
-      console.error(`[ModPkg] Failed to post-install ${name}:`, err);
-      // Clean up the installation if post-installation fails
-      fs.rmSync(targetPath, { recursive: true, force: true });
+      console.error(`[ModPkg] Failed to install ${name}:`, err);
+      // Clean up the installation if it fails
+      if (fs.existsSync(targetPath)) {
+        fs.rmSync(targetPath, { recursive: true, force: true });
+      }
       return null;
     }
-
-    return pkg;
   }
 
   async versionDiff(bucket: ModBucket): Promise<number> {

@@ -151,14 +151,16 @@ export class V1Mod implements IModRunner {
         return !hasModJson && hasJsFiles;
     }
 
-    async preInstall(modPath: string): Promise<boolean> {
-        return true; // V1 mods don't need pre-installation checks
+    // Static methods
+    static preInstall(modPath: string): void {
+        // V1 mods don't need pre-installation checks
+        console.log(`[V1Mod] Pre-installing mod at ${modPath}`);
     }
 
-    async postInstall(modPath: string): Promise<boolean> {
+    static postInstall(modPath: string): void {
         const reqPath = path.join(modPath, "req.txt");
         if (!fs.existsSync(reqPath)) {
-            return true;
+            return;
         }
         console.log('[V1Mod] Installing requirements for', path.basename(modPath));
 
@@ -167,7 +169,7 @@ export class V1Mod implements IModRunner {
             .filter(line => line && !line.startsWith('#'));
 
         if (requirements.length === 0) {
-            return true;
+            return;
         }
 
         try {
@@ -179,19 +181,20 @@ export class V1Mod implements IModRunner {
                     cwd: modPath
                 });
             }
-            return true;
         } catch (err) {
             console.error(`[V1Mod] Failed to install requirements in ${modPath}:`, err);
-            return false;
+            throw err; // Propagate error to caller
         }
     }
 
-    async preUninstall(modPath: string): Promise<boolean> {
-        return true; // V1 mods don't need pre-uninstallation checks
+    static preUninstall(modPath: string): void {
+        // V1 mods don't need pre-uninstallation checks
+        console.log(`[V1Mod] Pre-uninstalling mod at ${modPath}`);
     }
 
-    async postUninstall(modPath: string): Promise<boolean> {
-        return true; // V1 mods don't need post-uninstallation cleanup
+    static postUninstall(modPath: string): void {
+        // V1 mods don't need post-uninstallation cleanup
+        console.log(`[V1Mod] Post-uninstalling mod at ${modPath}`);
     }
 }
 

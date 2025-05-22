@@ -18,6 +18,18 @@ export const defaultContext: ModContext = {
     }
 };
 
+/**
+ * Interface for mod runner implementations.
+ * 
+ * Required static methods (must be implemented on the class):
+ * - isType(path: string): Promise<boolean> - Check if a path contains a valid mod of this type
+ * 
+ * Optional static lifecycle methods:
+ * - preInstall(path: string): void
+ * - postInstall(path: string): void
+ * - preUninstall(path: string): void
+ * - postUninstall(path: string): void
+ */
 export interface IModRunner {
     /**
      * Mount the mod into the given container element.
@@ -44,41 +56,6 @@ export interface IModRunner {
      * @returns The prepared context for the mod
      */
     prepareContext(baseContext?: ModContext): ModContext;
-
-    /**
-     * Check if a path contains a valid mod of this type
-     * @param path Path to check
-     * @returns Whether the path contains a valid mod of this type
-     */
-    isType(path: string): Promise<boolean>;
-
-    /**
-     * Pre-installation hook
-     * @param path Path to the mod being installed
-     * @returns Whether to proceed with installation
-     */
-    preInstall(path: string): Promise<boolean>;
-
-    /**
-     * Post-installation hook
-     * @param path Path to the installed mod
-     * @returns Whether installation was successful
-     */
-    postInstall(path: string): Promise<boolean>;
-
-    /**
-     * Pre-uninstallation hook
-     * @param path Path to the mod being uninstalled
-     * @returns Whether to proceed with uninstallation
-     */
-    preUninstall(path: string): Promise<boolean>;
-
-    /**
-     * Post-uninstallation hook
-     * @param path Path to the uninstalled mod
-     * @returns Whether uninstallation was successful
-     */
-    postUninstall(path: string): Promise<boolean>;
 }
 
 // SECTION IPC

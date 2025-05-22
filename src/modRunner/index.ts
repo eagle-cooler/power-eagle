@@ -8,6 +8,12 @@ const path = (global as unknown as { path: typeof import("path") }).path || requ
 
 export type ModType = "v1" | "react" | "js";
 
+const modImpls = {
+    v1: V1Mod,
+    react: undefined,
+    js: undefined
+}
+
 const modCreators: Record<ModType, (entryPath: string, name: string) => Promise<IModRunner | null>> = {
     v1: async (entryPath: string, name: string) => {
         const mod = new V1Mod();
@@ -55,9 +61,13 @@ export async function createModRunner(pkg: ModPkg): Promise<IModRunner | null> {
  */
 export async function getModType(modPath: string): Promise<ModType | null> {
     // Check each mod type in order
-    for (const [type, creator] of Object.entries(modCreators)) {
-        const mod = await creator(modPath, "");
-        if (mod && await mod.isType(modPath)) {
+    for (const [type, ModClass] of Object.entries(modImpls)) {
+        if (!ModClass) {
+            console.warn(`[ModRunner] ${type} mods are not supported yet`);
+            continue;
+        }
+        const mod = new ModClass();
+        if (await mod.isType(modPath)) {
             return type as ModType;
         }
     }
