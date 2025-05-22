@@ -227,4 +227,85 @@
 2. UI Guidelines
    - Clear visual feedback
    - Consistent naming
-   - Proper error handling 
+   - Proper error handling
+
+## Mod Runner Architecture
+
+### Type Detection
+```typescript
+// Each mod type must implement isType()
+interface IModRunner {
+    isType(path: string): Promise<boolean>;
+}
+
+// Type detection happens before file operations
+async function getModType(modPath: string): Promise<ModType | null> {
+    for (const [type, ModClass] of Object.entries(modImpls)) {
+        if (!ModClass) continue;
+        const mod = new ModClass();
+        if (await mod.isType(modPath)) {
+            return type as ModType;
+        }
+    }
+    return null;
+}
+```
+
+### Installation Process
+```typescript
+// Clear order of operations
+async function install(bucket: ModBucket, name: string): Promise<ModPkg | null> {
+    // 1. Get mod type from source
+    const modType = await getModType(pkgPath);
+    
+    // 2. Run pre-install hook
+    if ('preInstall' in ModClass) {
+        ModClass.preInstall(targetPath);
+    }
+    
+    // 3. Copy files
+    fs.cpSync(pkgPath, targetPath, { recursive: true });
+    
+    // 4. Run post-install hook
+    if ('postInstall' in ModClass) {
+        ModClass.postInstall(targetPath);
+    }
+}
+```
+
+### Type System
+```typescript
+// Minimal but clear type definitions
+const modImpls = {
+    v1: V1Mod,
+    react: undefined,
+    js: undefined
+};
+
+// Proper handling of undefined cases
+if (!ModClass) {
+    console.warn(`[ModRunner] ${type} mods are not supported yet`);
+    continue;
+}
+```
+
+## Key Patterns
+1. Type Detection
+   - Separate from module loading
+   - Each mod type defines its own detection logic
+   - Clear handling of unsupported types
+
+2. Installation Process
+   - Clear order of operations
+   - Pre/post hooks for customization
+   - Proper cleanup on failure
+
+3. Type System
+   - Minimal type definitions
+   - Clear handling of undefined cases
+   - Type inference where possible
+
+4. Error Handling
+   - Consistent across mod types
+   - Clear error messages
+   - Proper cleanup on failure 

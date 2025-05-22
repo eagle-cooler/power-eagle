@@ -405,3 +405,80 @@ power-eagle/
 2. TypeScript type checking
 3. ESLint code quality checks
 4. Cross-browser compatibility testing 
+
+## Mod Runner Implementation
+
+### Core Components
+1. `IModRunner` Interface
+   - Defines required instance methods
+   - Documents optional static lifecycle methods
+   - Each mod type must implement `isType()`
+
+2. Mod Type Detection
+   - Uses `isType()` method from each implementation
+   - Handles undefined/unsupported types gracefully
+   - Type detection happens before file operations
+
+3. Installation Process
+   - Pre-install hooks for preparation
+   - File copying
+   - Post-install hooks for dependencies
+   - Cleanup on failure
+
+### Type System
+1. Mod Types
+   - `v1`: Legacy mods (no mod.json)
+   - `react`: React-based mods (future)
+   - `js`: JavaScript mods (future)
+
+2. Implementation Map
+   ```typescript
+   const modImpls = {
+       v1: V1Mod,
+       react: undefined,
+       js: undefined
+   }
+   ```
+
+3. Type Safety
+   - Minimal type annotations
+   - Clear handling of undefined cases
+   - Proper error handling
+
+### Dependencies
+1. Node.js Modules
+   - `path`: Path manipulation
+   - `fs`: File system operations
+   - `child_process`: For npm operations
+
+2. TypeScript Features
+   - Type inference
+   - Interface implementation
+   - Optional static methods
+
+### Development Setup
+1. TypeScript Configuration
+   - Strict type checking
+   - Module resolution
+   - Path aliases
+
+2. Build Process
+   - TypeScript compilation
+   - Module bundling
+   - Development server
+
+### Technical Constraints
+1. Mod Type Support
+   - Only v1 mods fully supported
+   - React and JS mods planned
+   - Clear upgrade path
+
+2. Installation Process
+   - Must handle dependencies
+   - Must support hooks
+   - Must clean up on failure
+
+3. Type Safety
+   - Must handle undefined cases
+   - Must validate mod types
+   - Must provide clear errors 

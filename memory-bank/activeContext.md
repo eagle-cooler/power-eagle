@@ -4,6 +4,8 @@
 - Simplified mod runner architecture with unified interface
 - Improved package management system
 - Better type safety and error handling
+- Mod Runner Architecture
+- Mod Type Detection and Installation
 
 ## Recent Changes
 1. Mod Runner Architecture
@@ -26,6 +28,23 @@
    - Improved error handling and cleanup
    - Better type safety in package operations
 
+4. Simplified mod type detection in `getModType`:
+   - Now uses `isType()` method from each mod implementation
+   - Properly handles undefined/unsupported mod types
+   - Skips unsupported types with warning messages
+
+5. Fixed mod installation process:
+   - Get mod type from source path before copying files
+   - Run pre-install hook before copying
+   - Copy files
+   - Run post-install hook after copying
+   - Handle dependencies in post-install hook
+
+6. Improved type safety:
+   - Removed explicit type annotations where TypeScript can infer them
+   - Fixed constructor type issues in mod implementations
+   - Added proper error handling for unsupported mod types
+
 ## Active Decisions
 1. Architecture
    - Single interface for all mod functionality
@@ -45,6 +64,21 @@
    - Clearer error messages
    - Improved maintainability
 
+4. Mod Type Detection:
+   - Each mod type must implement `isType()` method
+   - Type detection happens before file operations
+   - Unsupported types are logged and skipped
+
+5. Installation Process:
+   - Pre-install hooks run before file operations
+   - Post-install hooks handle dependencies
+   - Cleanup on failure
+
+6. Type System:
+   - Using TypeScript's type inference where possible
+   - Keeping type definitions minimal but clear
+   - Proper handling of undefined/unsupported cases
+
 ## Next Steps
 1. Short Term
    - Test V1 mod implementation
@@ -63,6 +97,10 @@
    - Add JS mod support
    - Enhance package management
    - Improve development experience
+
+4. Implement proper React and JS mod types
+5. Add more robust error handling for dependency installation
+6. Consider adding mod type validation in pre-install hooks
 
 ## Current Considerations
 1. Technical
@@ -144,4 +182,8 @@
 1. Single interface is better than separate static/instance interfaces
 2. Instance methods provide better encapsulation
 3. No need for placeholder implementations
-4. Clear error handling is crucial 
+4. Clear error handling is crucial
+5. Type detection should be separate from module loading
+6. Installation hooks should be clearly ordered
+7. TypeScript's type inference can simplify code
+8. Error handling should be consistent across mod types 
