@@ -2,6 +2,8 @@ const path = (global as unknown as { path: typeof import("path") }).path || requ
 const fs = (global as unknown as { fs: typeof import("fs") }).fs || require("fs");
 import { POWER_EAGLE_BUCKETS_PATH, POWER_EAGLE_PKGS_PATH, localLinksJson } from "./utils";
 import ModBucket from "./bucket";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const execSync = (global as unknown as { execSync: typeof import("child_process").execSync }).execSync || require("child_process").execSync;
 
 class ModPkg {
     /**
@@ -92,6 +94,39 @@ class ModPkg {
         });
     }
 
+    private async installRequirements(): Promise<void> {
+        const reqPath = path.join(POWER_EAGLE_PKGS_PATH, this.name, "req.txt");
+        if (!fs.existsSync(reqPath)) {
+            return;
+        }
+        console.log('[ModPkg] Installing requirements for', this.name);
+
+        const requirements = fs.readFileSync(reqPath, 'utf8').split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#'));
+
+        if (requirements.length === 0) {
+            return;
+        }
+
+        const pkgDir = path.join(POWER_EAGLE_PKGS_PATH, this.name);
+        console.log(`[ModPkg] Installing requirements for ${this.name} in directory: ${pkgDir}`);
+        
+        try {
+            // Install npm packages
+            for (const req of requirements) {
+                console.log(`[ModPkg] Installing ${req} in ${pkgDir}`);
+                execSync(`npm install ${req}`, { 
+                    stdio: 'inherit',
+                    cwd: pkgDir
+                });
+            }
+        } catch (err) {
+            console.error(`[ModPkg] Failed to install requirements in ${pkgDir}:`, err);
+            throw err;
+        }
+    }
+
     static async install(bucket: ModBucket, name: string): Promise<ModPkg | null> {
         const bucketPath = path.join(POWER_EAGLE_BUCKETS_PATH, bucket.folderName);
         const pkgPath = path.join(bucketPath, name);
@@ -110,8 +145,20 @@ class ModPkg {
         // Copy package files
         fs.cpSync(pkgPath, targetPath, { recursive: true });
 
-        // Load and return the installed package
-        return ModPkg.loadPkg(name);
+        // Load the installed package
+        const pkg = ModPkg.loadPkg(name);
+        
+        try {
+            // Install requirements after copying files
+            await pkg.installRequirements();
+        } catch (err) {
+            console.error(`[ModPkg] Failed to install requirements for ${name}:`, err);
+            // Clean up the installation if requirements fail
+            fs.rmSync(targetPath, { recursive: true, force: true });
+            return null;
+        }
+
+        return pkg;
     }
 
     async versionDiff(bucket: ModBucket): Promise<number> {
@@ -169,6 +216,10 @@ class ModPkg {
         this.description = updatedPkg.description;
 
         return true;
+    }
+
+    isLegacy(): boolean {
+        return this.type === "v1";
     }
 }
 

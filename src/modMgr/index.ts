@@ -171,6 +171,23 @@ class _ModMgr {
     this.buckets.clear();
     this.pkgs.clear();
   }
+
+  getModName(name: string): string | null {
+    const pkg = this.pkgs.get(name);
+    if (!pkg) return null;
+
+    try {
+      const modJsonPath = path.join(POWER_EAGLE_PKGS_PATH, name, "mod.json");
+      if (fs.existsSync(modJsonPath)) {
+        const modJson = JSON.parse(fs.readFileSync(modJsonPath, "utf8"));
+        return modJson.name || name;
+      }
+      return name;
+    } catch (error) {
+      console.error(`Failed to get mod name for ${name}:`, error);
+      return name;
+    }
+  }
 }
 
 const ModMgr = new _ModMgr();

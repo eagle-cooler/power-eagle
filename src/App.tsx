@@ -41,7 +41,13 @@ function App() {
     setTabs((prev) => {
       const exists = prev.some((t) => t.id === tabId);
       if (!exists) {
-        const newTab = { id: tabId, title: tabId };
+        // Check if we have a title in the tab history
+        const tabHistory = localMgr.getTabHistory();
+        const historyItem = tabHistory.find(item => item.id === tabId);
+        const newTab = { 
+          id: tabId, 
+          title: historyItem?.title || tabId 
+        };
         localMgr.addToTabHistory(newTab);
         return [...prev, newTab];
       }
@@ -83,7 +89,7 @@ function App() {
       case "packages":
         return (
           <div className="flex-1">
-            <PackageManager />
+            <PackageManager onTabSelect={handleTabSelect} />
           </div>
         );
       default:

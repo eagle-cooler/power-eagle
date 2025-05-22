@@ -1,3 +1,4 @@
+
 interface ModEventHandlers {
     onLibraryChanged?: (newPath: string, oldPath: string) => void;
     onItemSelected?: (newItems: Item[], oldItems: Item[]) => void;

@@ -1,52 +1,62 @@
 // Declare the global type augmentation
 declare global {
-    var powerEagle: ModContext['powerEagle'];
+    interface Window {
+        powerEagle?: ModContext['powerEagle'];
+    }
 }
 
-export interface ModContext {
-    // Add any global variables you want to expose to the mod
-    powerEagle?: {
-        version: string;
-        api: {
-            // Add your API methods here
-            log: (message: string) => void;
-            // ... other API methods
-        };
-    };
-    // ... other global variables
-}
+// Use existing modules if available (for browser bundlers) otherwise require them on Node.
+const fs = (global as unknown as { fs: typeof import("fs") }).fs || require("fs");
+
+import { ModContext } from './modContext';
 
 export class ModuleLoader {
-    private defaultContext: ModContext = {
-        powerEagle: {
-            version: "1.0.0",
-            api: {
-                log: (message: string) => console.log(`[PowerEagle] ${message}`),
-            }
+    private cache: Map<string, unknown> = new Map();
+
+    loadModule(entryPath: string, context?: ModContext): unknown {
+        // Check cache first
+        if (this.cache.has(entryPath)) {
+            return this.cache.get(entryPath);
         }
-    };
 
-    loadModule(entryPath: string, context: ModContext = this.defaultContext): unknown {
-        console.log('Loading module', entryPath);
-
-        // Save original require
-        const originalRequire = require;
-        
-        // Create a custom require function that uses our context
-        const customRequire = (path: string) => {
-            // Temporarily set our context as global
-            const originalPowerEagle = global.powerEagle;
-            global.powerEagle = context.powerEagle;
+        try {
+            // Always convert to .cjs to force CommonJS loading
+            const cjsPath = entryPath.replace(/\.js$/, '.cjs');
             
-            try {
-                return originalRequire(path);
-            } finally {
-                // Restore original global
-                global.powerEagle = originalPowerEagle;
+            // If the .cjs file doesn't exist or is older than the source, copy it
+            if (!fs.existsSync(cjsPath) || 
+                fs.statSync(cjsPath).mtime < fs.statSync(entryPath).mtime) {
+                fs.copyFileSync(entryPath, cjsPath);
             }
-        };
 
-        // Use the custom require
-        return customRequire(entryPath);
+            // Load the module
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const module = require(cjsPath);
+            
+            // If the module is a function, call it with context
+            if (typeof module === 'function') {
+                const result = module(context);
+                this.cache.set(entryPath, result);
+                return result;
+            }
+            
+            // If the module has a default export that's a function, call it with context
+            if (module.default && typeof module.default === 'function') {
+                const result = module.default(context);
+                this.cache.set(entryPath, result);
+                return result;
+            }
+
+            // Otherwise just return the module
+            this.cache.set(entryPath, module);
+            return module;
+        } catch (err) {
+            console.error(`[ModuleLoader] Failed to load module ${entryPath}:`, err);
+            throw err;
+        }
+    }
+
+    clearCache() {
+        this.cache.clear();
     }
 } 

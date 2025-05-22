@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import ModMgr from "../modMgr";
 import { localLinksJson, POWER_EAGLE_PKGS_PATH } from "../modMgr/utils";
 import { createModRunner, createModRunnerByPath, ModType, IModRunner } from "../modRunner";
+import { localMgr } from "../modMgr/localMgr";
 
 // Node modules polyfill pattern (works in electron / node-web)
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
@@ -61,6 +62,12 @@ const ModHost: React.FC<ModHostProps> = ({ name }) => {
       if (runner && containerRef.current && !cancelled) {
         runners.set(name, runner);
         await runner.mount(containerRef.current);
+        
+        // Update the tab name with the mod's actual name
+        const modName = runner.getModName();
+        if (modName && modName !== name) {
+          localMgr.addToTabHistory({ id: name, title: modName });
+        }
       }
     };
 

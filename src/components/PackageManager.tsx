@@ -10,9 +10,15 @@ interface PackageStatus {
   version: string;
   bucketVersion?: string;
   needsUpdate: boolean;
+  isLegacy?: boolean;
+  displayName?: string;
 }
 
-const PackageManager: React.FC = () => {
+interface PackageManagerProps {
+  onTabSelect?: (tabId: string) => void;
+}
+
+const PackageManager: React.FC<PackageManagerProps> = ({ onTabSelect }) => {
   const [buckets, setBuckets] = useState<ModBucket[]>([]);
   const [selectedBucket, setSelectedBucket] = useState<string | null>(null);
   const [packages, setPackages] = useState<Map<string, PackageStatus>>(new Map());
@@ -65,11 +71,20 @@ const PackageManager: React.FC = () => {
             if (Array.isArray(bucketPkgs)) {
               bucketPkgs.forEach(pkg => {
                 const installedPkg = ModMgr.pkgs.get(pkg.name);
+                // Get the actual mod name if it's installed
+                let displayName = pkg.name;
+                if (installedPkg) {
+                  const modName = ModMgr.getModName(pkg.name);
+                  if (modName) {
+                    displayName = modName;
+                  }
+                }
                 pkgStatus.set(pkg.name, {
                   installed: !!installedPkg,
                   version: installedPkg?.version || "",
                   bucketVersion: pkg.version,
-                  needsUpdate: installedPkg ? installedPkg.version !== pkg.version : false
+                  needsUpdate: installedPkg ? installedPkg.version !== pkg.version : false,
+                  displayName: displayName
                 });
               });
             }
@@ -88,6 +103,12 @@ const PackageManager: React.FC = () => {
     if (bucket) {
       const pkg = await ModMgr.installPkg(pkgName, bucket);
       if (pkg) {
+        // Get the mod name and update the tab history
+        const modName = ModMgr.getModName(pkgName);
+        if (modName && modName !== pkgName) {
+          localMgr.addToTabHistory({ id: pkgName, title: modName });
+        }
+
         setPackages(prev => {
           const next = new Map(prev);
           next.set(pkgName, {
@@ -254,6 +275,170 @@ const PackageManager: React.FC = () => {
     }
   };
 
+  const handleUpdateBucket = async () => {
+    const bucket = buckets.find(b => b.folderName === selectedBucket);
+    if (bucket && bucket.folderName !== "local") {
+      try {
+        await ModMgr.updateBucket(bucket.folderName);
+        
+        // Refresh the bucket data
+        const updatedBucket = ModMgr.buckets.get(bucket.folderName);
+        if (!updatedBucket) {
+          throw new Error('Failed to refresh bucket data');
+        }
+
+        // Update package statuses with fresh data
+        const updatedPackages = new Map();
+        const bucketPkgs = updatedBucket.getBucketPkg("", false) as ModPkg[];
+        
+        if (Array.isArray(bucketPkgs)) {
+          // First, add all packages from the bucket
+          for (const pkg of bucketPkgs) {
+            const installedPkg = ModMgr.pkgs.get(pkg.name);
+            // Get the actual mod name if it's installed
+            let displayName = pkg.name;
+            if (installedPkg) {
+              const modName = ModMgr.getModName(pkg.name);
+              if (modName) {
+                displayName = modName;
+              }
+            }
+            updatedPackages.set(pkg.name, {
+              installed: !!installedPkg,
+              version: installedPkg?.version || "",
+              bucketVersion: pkg.version,
+              needsUpdate: installedPkg ? installedPkg.version !== pkg.version : false,
+              isLegacy: installedPkg?.isLegacy() || false,
+              displayName: displayName
+            });
+          }
+
+          // Then, add any installed packages that might not be in the bucket
+          for (const [name, pkg] of ModMgr.pkgs.entries()) {
+            if (!updatedPackages.has(name)) {
+              updatedPackages.set(name, {
+                installed: true,
+                version: pkg.version,
+                bucketVersion: "",
+                needsUpdate: false,
+                isLegacy: pkg.isLegacy(),
+                displayName: pkg.name
+              });
+            }
+          }
+        }
+
+        setPackages(updatedPackages);
+        await eagle.dialog.showMessageBox({
+          type: 'info',
+          title: 'Bucket Updated',
+          message: 'Bucket has been refreshed successfully',
+          buttons: ['OK']
+        });
+      } catch (error) {
+        console.error('Failed to update bucket:', error);
+        await eagle.dialog.showMessageBox({
+          type: 'error',
+          title: 'Update Failed',
+          message: 'Could not update bucket',
+          detail: error instanceof Error ? error.message : 'Unknown error occurred',
+          buttons: ['OK']
+        });
+      }
+    }
+  };
+
+  const handleUpdateAll = async () => {
+    const bucket = buckets.find(b => b.folderName === selectedBucket);
+    if (bucket && bucket.folderName !== "local") {
+      try {
+        // First update the bucket
+        await handleUpdateBucket();
+        
+        // Then update all packages that need updates
+        const updatedPackages = new Map(packages);
+        let hasUpdates = false;
+
+        for (const [name, status] of packages.entries()) {
+          if (status.installed && status.needsUpdate) {
+            const pkg = await ModMgr.updatePkg(name, bucket);
+            if (pkg) {
+              updatedPackages.set(name, {
+                installed: true,
+                version: pkg.version,
+                bucketVersion: pkg.version,
+                needsUpdate: false,
+                isLegacy: pkg.isLegacy(),
+                displayName: status.displayName
+              });
+              hasUpdates = true;
+            }
+          }
+        }
+
+        if (hasUpdates) {
+          setPackages(updatedPackages);
+          await eagle.dialog.showMessageBox({
+            type: 'info',
+            title: 'Updates Complete',
+            message: 'All available packages have been updated',
+            buttons: ['OK']
+          });
+        } else {
+          await eagle.dialog.showMessageBox({
+            type: 'info',
+            title: 'No Updates Available',
+            message: 'All packages are up to date',
+            buttons: ['OK']
+          });
+        }
+      } catch (error) {
+        console.error('Failed to update packages:', error);
+        await eagle.dialog.showMessageBox({
+          type: 'error',
+          title: 'Update Failed',
+          message: 'Could not update packages',
+          detail: error instanceof Error ? error.message : 'Unknown error occurred',
+          buttons: ['OK']
+        });
+      }
+    }
+  };
+
+  const handleRemoveBucket = async () => {
+    const bucket = buckets.find(b => b.folderName === selectedBucket);
+    if (bucket && bucket.folderName !== "local") {
+      try {
+        // First uninstall all packages from this bucket
+        const bucketPkgs = bucket.getBucketPkg("", false) as ModPkg[];
+        if (Array.isArray(bucketPkgs)) {
+          for (const pkg of bucketPkgs) {
+            if (ModMgr.pkgs.has(pkg.name)) {
+              ModMgr.uninstallPkg(pkg.name);
+            }
+          }
+        }
+
+        // Then remove the bucket
+        if (ModMgr.removeBucket(bucket.folderName)) {
+          // Refresh buckets
+          const bucketList = [localBucket, ...Array.from(ModMgr.buckets.values())];
+          setBuckets(bucketList);
+          setSelectedBucket("local"); // Switch to local bucket after removal
+        }
+      } catch (error) {
+        console.error('Failed to remove bucket:', error);
+        await eagle.dialog.showMessageBox({
+          type: 'error',
+          title: 'Remove Failed',
+          message: 'Could not remove bucket',
+          detail: error instanceof Error ? error.message : 'Unknown error occurred',
+          buttons: ['OK']
+        });
+      }
+    }
+  };
+
   return (
     <div className="flex h-full">
       {/* Left column - Bucket list */}
@@ -302,7 +487,16 @@ const PackageManager: React.FC = () => {
             <div key={name} className="flex flex-col p-4 border-b border-base-300">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h3 className="font-medium">{name}</h3>
+                  <h3 
+                    className={`font-medium ${status.installed ? 'hover:text-primary cursor-pointer' : ''}`}
+                    onClick={() => {
+                      if (status.installed) {
+                        onTabSelect?.(name);
+                      }
+                    }}
+                  >
+                    {status.displayName || name}
+                  </h3>
                   <p className="text-sm text-base-content/70">
                     {selectedBucket === "local" ? (
                       <button
@@ -318,7 +512,21 @@ const PackageManager: React.FC = () => {
                         {truncatePath(localMgr.getLocalPackagePath(name) || '')}
                       </button>
                     ) : (
-                      status.installed ? `Installed: v${status.version}` : "Not installed"
+                      <>
+                        {status.installed ? (
+                          <>
+                            Installed: v{status.version}
+                            {status.isLegacy && (
+                              <span className="ml-2 text-warning">(Legacy)</span>
+                            )}
+                            {status.needsUpdate && (
+                              <span className="ml-2 text-info">(Update available: v{status.bucketVersion})</span>
+                            )}
+                          </>
+                        ) : (
+                          "Not installed"
+                        )}
+                      </>
                     )}
                   </p>
                 </div>
@@ -376,14 +584,30 @@ const PackageManager: React.FC = () => {
               Link Local Directory
             </button>
           )}
-          {selectedBucket !== "local" && (
-            <button
-              className="btn btn-error"
-              onClick={() => selectedBucket && ModMgr.removeBucket(selectedBucket)}
-            >
-              Remove
-            </button>
-          )}
+          <div className="flex gap-2">
+            {selectedBucket !== "local" && (
+              <>
+                <button
+                  className="btn btn-info"
+                  onClick={handleUpdateBucket}
+                >
+                  Update Bucket
+                </button>
+                <button
+                  className="btn btn-info"
+                  onClick={handleUpdateAll}
+                >
+                  Update All
+                </button>
+                <button
+                  className="btn btn-error"
+                  onClick={handleRemoveBucket}
+                >
+                  Remove
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
