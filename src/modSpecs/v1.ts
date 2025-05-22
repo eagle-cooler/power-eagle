@@ -4,6 +4,7 @@ import { loadModule } from '../modRunner/utils';
 // Use existing modules if available (for browser bundlers) otherwise require them on Node.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
 const fs = (global as unknown as { fs: typeof import("fs") }).fs || require("fs");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const execSync = (global as unknown as { execSync: typeof import("child_process").execSync }).execSync || require("child_process").execSync;
 
 export interface V1ModDefinition {
