@@ -19,9 +19,7 @@
 
 ### Mod System
 - Modular architecture with separate mod specifications
-- V1 mod support (legacy)
-- React mod support (planned)
-- JS mod support (planned)
+- V1 mod support
 - Mod metadata handling
 - Mod name management
 - Context injection
@@ -53,7 +51,6 @@
      - `index.ts`: Mod type routing and creation
    - `modSpecs/`: Mod type implementations
      - `v1.ts`: V1 mod implementation
-     - Future: react.ts, js.ts
 
 2. Mod Loading System
    - CommonJS module loading
@@ -277,9 +274,7 @@ async function install(bucket: ModBucket, name: string): Promise<ModPkg | null> 
 ```typescript
 // Minimal but clear type definitions
 const modImpls = {
-    v1: V1Mod,
-    react: undefined,
-    js: undefined
+    v1: V1Mod
 };
 
 // Proper handling of undefined cases

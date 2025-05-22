@@ -146,10 +146,20 @@ export class V1Mod implements IModRunner {
         return this.mod.name;
     }
 
-    async isType(modPath: string): Promise<boolean> {
-        const hasModJson = fs.existsSync(path.join(modPath, "mod.json"));
-        const hasJsFiles = fs.readdirSync(modPath).some(file => file.endsWith(".js"));
-        return !hasModJson && hasJsFiles;
+    static async isType(modPath: string): Promise<boolean> {
+        console.log('[V1Mod] Checking if path is a V1 mod:', modPath);
+        try {
+            const hasModJson = fs.existsSync(path.join(modPath, "mod.json"));
+            console.log('[V1Mod] Has mod.json:', hasModJson);
+            
+            // V1 mods should NOT have mod.json
+            const isV1Mod = !hasModJson;
+            console.log('[V1Mod] Is V1 mod:', isV1Mod);
+            return isV1Mod;
+        } catch (err) {
+            console.error('[V1Mod] Error checking mod type:', err);
+            return false;
+        }
     }
 
     // Static methods

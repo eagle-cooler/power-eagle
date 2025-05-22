@@ -34,7 +34,11 @@ src/
   modMgr/
     pkg.ts       # Package management
     bucket.ts    # Bucket management
+    localMgr.ts  # Local package management
     utils.ts     # Shared utilities
+    index.ts     # Main package manager
+  components/    # UI components
+  assets/        # Static assets
 ```
 
 ### 2. Dependencies
@@ -172,7 +176,6 @@ src/
 ## Technologies Used
 1. Core Technologies
    - TypeScript
-   - React
    - Electron
    - Node.js
 
@@ -196,13 +199,12 @@ src/
    - Git for version control
 
 2. Build Tools
-   - Webpack for bundling
+   - Vite for bundling
    - TypeScript for compilation
    - ESLint for linting
    - Jest for testing
 
 3. Dependencies
-   - React for UI
    - TailwindCSS for styling
    - Electron for desktop
    - Node.js APIs
@@ -295,9 +297,6 @@ src/
   - Entry point: `index.js` (preferred) or `main.js`
   - Simple structure with direct DOM manipulation
 
-- **react**: Not supported yet
-- **js**: Not supported yet
-
 ### Mod Loading System
 
 #### Core Components
@@ -372,7 +371,6 @@ interface ModContext {
 - DOM manipulation for mod rendering
 
 ## Technology Stack
-- **Frontend Framework**: React with TypeScript
 - **Build Tool**: Vite
 - **Styling**: TailwindCSS
 - **Package Manager**: pnpm
@@ -428,17 +426,13 @@ power-eagle/
 ### Type System
 1. Mod Types
    - `v1`: Legacy mods (no mod.json)
-   - `react`: React-based mods (future)
-   - `js`: JavaScript mods (future)
 
 2. Implementation Map
-   ```typescript
-   const modImpls = {
-       v1: V1Mod,
-       react: undefined,
-       js: undefined
-   }
-   ```
+```typescript
+const modImpls = {
+    v1: V1Mod
+}
+```
 
 3. Type Safety
    - Minimal type annotations
@@ -470,7 +464,6 @@ power-eagle/
 ### Technical Constraints
 1. Mod Type Support
    - Only v1 mods fully supported
-   - React and JS mods planned
    - Clear upgrade path
 
 2. Installation Process

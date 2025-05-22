@@ -10,18 +10,7 @@ import {
 } from "./utils";
 import ModBucket from "./bucket";
 import { getModType, ModType } from "../modRunner";
-import V1Mod from "../modSpecs/v1";
-import { IModRunner } from "../modRunner/i";
 
-// Map mod types to their implementations
-const modTypeImpls: Partial<Record<ModType, new () => IModRunner & {
-    preInstall?: (path: string) => void;
-    postInstall?: (path: string) => void;
-    preUninstall?: (path: string) => void;
-    postUninstall?: (path: string) => void;
-}>> = {
-  v1: V1Mod,
-};
 
 class ModPkg {
   /**
@@ -58,7 +47,7 @@ class ModPkg {
 
     try {
       // Get the mod type implementation
-      const ModClass = modTypeImpls[this.type];
+      const ModClass = getModType(pkgPath);
       if (ModClass) {
         // Run pre-uninstall hook if it exists
         if ('preUninstall' in ModClass) {
@@ -95,10 +84,6 @@ class ModPkg {
     localLinksJson.setValue(this.name, "");
     this.sourcePath = undefined;
     return true;
-  }
-
-  static async getType(pkgPath: string): Promise<ModType | null> {
-    return getModType(pkgPath);
   }
 
   static loadPkg(name: string): ModPkg {
@@ -163,16 +148,11 @@ class ModPkg {
     }
 
     try {
-      // Get the mod type from source path
-      const modType = await ModPkg.getType(pkgPath);
-      if (!modType) {
-        throw new Error(`Could not determine mod type for ${name}`);
-      }
 
       // Get the mod type implementation
-      const ModClass = modTypeImpls[modType];
+      const ModClass = getModType(pkgPath);
       if (!ModClass) {
-        throw new Error(`No implementation found for mod type ${modType}`);
+        throw new Error(`No implementation found for mod type ${name}`);
       }
 
       // Run pre-installation hook if it exists

@@ -2,16 +2,15 @@ import ModPkg from "../modMgr/pkg";
 import { POWER_EAGLE_PKGS_PATH } from "../modMgr/utils";
 import { IModRunner } from "./i";
 import V1Mod from "../modSpecs/v1";
+import ReactMod from "../modSpecs/react";
 
 // Use existing modules if available (for browser bundlers) otherwise require them on Node.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
 
-export type ModType = "v1" | "react" | "js";
+export type ModType = "v1";
 
 const modImpls = {
-    v1: V1Mod,
-    react: undefined,
-    js: undefined
+    v1: V1Mod
 }
 
 const modCreators: Record<ModType, (entryPath: string, name: string) => Promise<IModRunner | null>> = {
@@ -19,14 +18,6 @@ const modCreators: Record<ModType, (entryPath: string, name: string) => Promise<
         const mod = new V1Mod();
         const success = await mod.loadMod(entryPath, name);
         return success ? mod : null;
-    },
-    react: async (_entryPath: string, name: string) => {
-        console.warn(`[ModRunner] React mods are not supported yet for ${name}`);
-        return null;
-    },
-    js: async (_entryPath: string, name: string) => {
-        console.warn(`[ModRunner] JS mods are not supported yet for ${name}`);
-        return null;
     }
 };
 
@@ -66,8 +57,7 @@ export async function getModType(modPath: string): Promise<ModType | null> {
             console.warn(`[ModRunner] ${type} mods are not supported yet`);
             continue;
         }
-        const mod = new ModClass();
-        if (await mod.isType(modPath)) {
+        if (await ModClass.isType(modPath)) {
             return type as ModType;
         }
     }

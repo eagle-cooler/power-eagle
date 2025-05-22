@@ -6,6 +6,7 @@
 - Better type safety and error handling
 - Mod Runner Architecture
 - Mod Type Detection and Installation
+- Removed React mod support to simplify core runner
 
 ## Recent Changes
 1. Mod Runner Architecture
@@ -45,6 +46,8 @@
    - Fixed constructor type issues in mod implementations
    - Added proper error handling for unsupported mod types
 
+7. Stripped React mod support from modRunner
+
 ## Active Decisions
 1. Architecture
    - Single interface for all mod functionality
@@ -79,6 +82,17 @@
    - Keeping type definitions minimal but clear
    - Proper handling of undefined/unsupported cases
 
+7. Using ES modules for React mods
+8. React Component Structure
+   - Using functional components with hooks
+   - Proper context prop passing
+   - Clean component organization
+
+9. Mod Context Integration
+   - Passing context through props
+   - Maintaining React's component lifecycle
+   - Ensuring proper React instance usage
+
 ## Next Steps
 1. Short Term
    - Test V1 mod implementation
@@ -101,6 +115,11 @@
 4. Implement proper React and JS mod types
 5. Add more robust error handling for dependency installation
 6. Consider adding mod type validation in pre-install hooks
+
+7. Test React mod functionality
+8. Document React mod development guidelines
+9. Add example React mods
+10. Implement additional React features
 
 ## Current Considerations
 1. Technical
@@ -159,6 +178,30 @@
    - Proper error handling
    - Consistent patterns
 
+4. React Mod Structure
+```jsx
+import React from 'react';
+
+const MyMod = ({ context }) => {
+    const [state, setState] = React.useState(initialState);
+    return (
+        <div>
+            {/* Component content */}
+        </div>
+    );
+};
+
+export default {
+    name: 'MyMod',
+    component: MyMod
+};
+```
+
+5. Context Usage
+- Pass context through props
+- Use React's built-in state management
+- Maintain proper component lifecycle
+
 ## Current Challenges
 1. Technical
    - Package management edge cases
@@ -178,6 +221,16 @@
    - Performance monitoring
    - Code maintainability
 
+4. React Hook Integration
+   - Ensuring proper hook usage
+   - Maintaining React context
+   - Avoiding multiple React instances
+
+5. Module Format
+   - Using ES modules consistently
+   - Ensuring proper bundling
+   - Maintaining compatibility
+
 ## Recent Learnings
 1. Single interface is better than separate static/instance interfaces
 2. Instance methods provide better encapsulation
@@ -186,4 +239,13 @@
 5. Type detection should be separate from module loading
 6. Installation hooks should be clearly ordered
 7. TypeScript's type inference can simplify code
-8. Error handling should be consistent across mod types 
+8. Error handling should be consistent across mod types
+9. React Integration
+   - ES modules work better with Vite
+   - Functional components are preferred
+   - Proper hook usage is critical
+
+10. Mod Development
+    - Keep components simple
+    - Use standard React patterns
+    - Maintain proper context flow 
