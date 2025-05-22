@@ -68,17 +68,18 @@ export const localLinksJson = new JsonFile<{
 }>(path.join(POWER_EAGLE_PKGS_PATH, "localLinks.json"), {});
 
 
-export function parseGitUrl(url : string) : {
-    user : string;
-    repo: string;
-} | null {
-    const match = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)$/);
-    if (!match) {
-        return null;
-    }
+export function parseGitUrl(url: string): { user: string; repo: string } | null {
+    // Handle both https and git URLs
+    const match = url.match(/github\.com[:/]([^/]+)\/([^/]+)(?:\.git)?$/);
+    if (!match) return null;
+
+    const [, user, repo] = match;
+    // Remove .git suffix if present
+    const cleanRepo = repo.replace(/\.git$/, '');
+    
     return {
-        user : match[1],
-        repo : match[2],
+        user,
+        repo: cleanRepo
     };
 }
 
