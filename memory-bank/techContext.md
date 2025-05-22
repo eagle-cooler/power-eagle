@@ -1,5 +1,174 @@
 # Technical Context
 
+## Core Technologies
+
+### 1. Mod Runner System
+- TypeScript for type safety
+- CommonJS for module loading
+- Node.js for file operations
+- Path management for cross-platform support
+
+### 2. Package Management
+- File system operations
+- Package validation
+- Requirements management
+- Lifecycle hooks
+
+### 3. Module Loading
+- CommonJS compatibility
+- Module caching
+- Error handling
+- Context injection
+
+## Development Setup
+
+### 1. Project Structure
+```
+src/
+  modRunner/
+    i.ts         # Core interfaces
+    utils.ts     # Shared utilities
+    index.ts     # Mod type routing
+  modSpecs/
+    v1.ts        # V1 mod implementation
+  modMgr/
+    pkg.ts       # Package management
+    bucket.ts    # Bucket management
+    utils.ts     # Shared utilities
+```
+
+### 2. Dependencies
+- Node.js >= 14
+- TypeScript >= 4.5
+- CommonJS modules
+- File system operations
+
+### 3. Build Process
+- TypeScript compilation
+- Module bundling
+- Type checking
+- Linting
+
+## Technical Constraints
+
+### 1. Module System
+- CommonJS compatibility required
+- No ESM support yet
+- Module caching for performance
+- Clear error handling
+
+### 2. File Operations
+- Cross-platform path handling
+- Safe file operations
+- Proper cleanup
+- Error handling
+
+### 3. Type Safety
+- Strict TypeScript checks
+- Interface compliance
+- Error type handling
+- Resource management
+
+## Dependencies
+
+### 1. Core Dependencies
+- Node.js built-ins
+- TypeScript
+- CommonJS modules
+- File system operations
+
+### 2. Development Dependencies
+- TypeScript compiler
+- ESLint
+- Testing framework
+- Build tools
+
+### 3. Runtime Dependencies
+- Module loader
+- File system utilities
+- Path management
+- Error handling
+
+## Tool Usage
+
+### 1. Development Tools
+- TypeScript compiler
+- ESLint
+- Testing framework
+- Build system
+
+### 2. Runtime Tools
+- Module loader
+- File system utilities
+- Path management
+- Error handling
+
+### 3. Testing Tools
+- Unit testing
+- Integration testing
+- Error testing
+- Performance testing
+
+## Implementation Details
+
+### 1. Mod Runner
+- Unified interface
+- Instance methods
+- Lifecycle hooks
+- Type safety
+
+### 2. Package Management
+- File operations
+- Requirements handling
+- Lifecycle hooks
+- Error handling
+
+### 3. Module Loading
+- CommonJS support
+- Module caching
+- Error handling
+- Context injection
+
+## Technical Decisions
+
+### 1. Architecture
+- Single interface
+- Instance methods
+- Clear lifecycle
+- Type safety
+
+### 2. Implementation
+- CommonJS modules
+- File operations
+- Error handling
+- Resource management
+
+### 3. Testing
+- Unit tests
+- Integration tests
+- Error tests
+- Performance tests
+
+## Development Guidelines
+
+### 1. Code Style
+- TypeScript strict mode
+- ESLint rules
+- Error handling
+- Documentation
+
+### 2. Testing
+- Unit test coverage
+- Integration tests
+- Error cases
+- Performance tests
+
+### 3. Documentation
+- Interface documentation
+- Implementation details
+- Error handling
+- Usage examples
+
 ## Technologies Used
 1. Core Technologies
    - TypeScript

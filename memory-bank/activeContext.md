@@ -1,56 +1,56 @@
 # Active Context
 
 ## Current Focus
-- Refactoring mod runner architecture for better maintainability and extensibility
-- Separating core infrastructure from mod type implementations
-- Improving module loading and context management
+- Simplified mod runner architecture with unified interface
+- Improved package management system
+- Better type safety and error handling
 
 ## Recent Changes
 1. Mod Runner Architecture
-   - Moved V1 mod implementation to modSpecs directory
-   - Created utils.ts for shared functionality
-   - Simplified core interfaces in i.ts
-   - Improved module loading system
+   - Combined IModRunner and IModRunnerStatic into a single interface
+   - Moved package management methods to instance methods
+   - Simplified mod type implementations
+   - Removed placeholder implementations for unimplemented mod types
 
 2. Code Organization
    - Core infrastructure in modRunner/
-     - i.ts: Core interfaces and types
+     - i.ts: Unified mod runner interface
      - utils.ts: Shared utilities
      - index.ts: Mod type routing
    - Mod implementations in modSpecs/
-     - v1.ts: V1 mod implementation
+     - v1.ts: V1 mod implementation with package management
 
-3. Module Loading
-   - Improved CommonJS module loading
-   - Added module caching
-   - Better error handling
-   - Cleaner context injection
+3. Package Management
+   - Moved requirements installation to mod type implementation
+   - Added lifecycle hooks for installation/uninstallation
+   - Improved error handling and cleanup
+   - Better type safety in package operations
 
 ## Active Decisions
 1. Architecture
-   - Separate core infrastructure from mod implementations
-   - Use utility functions for common operations
-   - Keep interfaces in core directory
-   - Move mod type implementations to modSpecs
+   - Single interface for all mod functionality
+   - Instance methods for package management
+   - No placeholder implementations
+   - Clear separation of concerns
 
-2. Module Loading
-   - Use CommonJS for compatibility
-   - Cache loaded modules
-   - Handle different export types
-   - Provide clear error messages
+2. Package Management
+   - Mod type-specific installation logic
+   - Proper lifecycle hooks
+   - Better error handling
+   - Cleaner cleanup process
 
-3. Context Management
-   - Base context in core interfaces
-   - Mod-specific context extensions
-   - Type-safe context preparation
-   - API versioning support
+3. Type Safety
+   - Unified interface for all mod operations
+   - Better type checking
+   - Clearer error messages
+   - Improved maintainability
 
 ## Next Steps
 1. Short Term
    - Test V1 mod implementation
-   - Verify module loading
-   - Check context injection
-   - Validate error handling
+   - Verify package management
+   - Check error handling
+   - Validate cleanup process
 
 2. Medium Term
    - Plan React mod implementation
@@ -61,77 +61,77 @@
 3. Long Term
    - Implement React mod support
    - Add JS mod support
-   - Enhance context system
-   - Improve module loading
+   - Enhance package management
+   - Improve development experience
 
 ## Current Considerations
 1. Technical
-   - Module loading performance
-   - Context type safety
+   - Package management performance
    - Error handling clarity
+   - Type safety
    - Code maintainability
 
 2. Architectural
    - Mod type extensibility
    - Interface stability
-   - Utility function reuse
+   - Package management flexibility
    - Documentation needs
 
 3. User Experience
    - Error message clarity
-   - Loading performance
+   - Installation performance
    - Mod compatibility
    - Development experience
 
 ## Project Insights
 1. Architecture
-   - Separation of concerns improves maintainability
-   - Utility functions reduce code duplication
+   - Single interface improves maintainability
+   - Instance methods provide better encapsulation
    - Clear interfaces enable better testing
    - Modular design supports future extensions
 
 2. Development
-   - CommonJS modules work well for compatibility
-   - Context injection needs careful typing
+   - Type safety is crucial
    - Error handling should be consistent
-   - Documentation is crucial for maintainability
+   - Documentation is important
+   - Clean code is maintainable
 
 3. Testing
-   - Module loading needs thorough testing
-   - Context injection should be verified
+   - Package management needs thorough testing
    - Error cases must be covered
    - Performance should be monitored
+   - Edge cases should be handled
 
 ## Important Patterns
 1. Code Organization
-   - Core infrastructure separate from implementations
-   - Shared utilities in dedicated file
-   - Clear interface definitions
+   - Single interface for all functionality
+   - Clear separation of concerns
    - Consistent error handling
+   - Type-safe operations
 
-2. Module Loading
-   - Cache loaded modules
-   - Handle different export types
-   - Provide clear error messages
-   - Support CommonJS format
+2. Package Management
+   - Mod type-specific logic
+   - Lifecycle hooks
+   - Proper cleanup
+   - Error handling
 
-3. Context Management
-   - Base context in core
-   - Mod-specific extensions
-   - Type-safe preparation
-   - Version-aware APIs
+3. Type Safety
+   - Unified interface
+   - Clear type definitions
+   - Proper error handling
+   - Consistent patterns
 
 ## Current Challenges
 1. Technical
-   - Module loading edge cases
-   - Context type safety
+   - Package management edge cases
    - Error handling consistency
    - Performance optimization
+   - Type safety maintenance
 
 2. Architectural
    - Mod type extensibility
    - Interface stability
-   - Utility function organization
+   - Package management flexibility
    - Documentation maintenance
 
 3. Development
@@ -141,7 +141,7 @@
    - Code maintainability
 
 ## Recent Learnings
-1. Project scope and requirements
-2. Technical stack decisions
-3. Architecture patterns
-4. User needs and expectations 
+1. Single interface is better than separate static/instance interfaces
+2. Instance methods provide better encapsulation
+3. No need for placeholder implementations
+4. Clear error handling is crucial 
