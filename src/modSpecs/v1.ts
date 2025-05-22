@@ -4,6 +4,7 @@ import { loadModule } from '../modRunner/utils';
 // Use existing modules if available (for browser bundlers) otherwise require them on Node.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
 const fs = (global as unknown as { fs: typeof import("fs") }).fs || require("fs");
+const execSync = (global as unknown as { execSync: typeof import("child_process").execSync }).execSync || require("child_process").execSync;
 
 export interface V1ModDefinition {
     name: string;
@@ -142,6 +143,55 @@ export class V1Mod implements IModRunner {
 
     getModName(): string {
         return this.mod.name;
+    }
+
+    async isType(modPath: string): Promise<boolean> {
+        const hasModJson = fs.existsSync(path.join(modPath, "mod.json"));
+        const hasJsFiles = fs.readdirSync(modPath).some(file => file.endsWith(".js"));
+        return !hasModJson && hasJsFiles;
+    }
+
+    async preInstall(modPath: string): Promise<boolean> {
+        return true; // V1 mods don't need pre-installation checks
+    }
+
+    async postInstall(modPath: string): Promise<boolean> {
+        const reqPath = path.join(modPath, "req.txt");
+        if (!fs.existsSync(reqPath)) {
+            return true;
+        }
+        console.log('[V1Mod] Installing requirements for', path.basename(modPath));
+
+        const requirements = fs.readFileSync(reqPath, 'utf8').split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#'));
+
+        if (requirements.length === 0) {
+            return true;
+        }
+
+        try {
+            // Install npm packages
+            for (const req of requirements) {
+                console.log(`[V1Mod] Installing ${req} in ${modPath}`);
+                execSync(`npm install ${req}`, { 
+                    stdio: 'inherit',
+                    cwd: modPath
+                });
+            }
+            return true;
+        } catch (err) {
+            console.error(`[V1Mod] Failed to install requirements in ${modPath}:`, err);
+            return false;
+        }
+    }
+
+    async preUninstall(modPath: string): Promise<boolean> {
+        return true; // V1 mods don't need pre-uninstallation checks
+    }
+
+    async postUninstall(modPath: string): Promise<boolean> {
+        return true; // V1 mods don't need post-uninstallation cleanup
     }
 }
 

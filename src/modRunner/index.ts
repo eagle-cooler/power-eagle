@@ -48,5 +48,21 @@ export async function createModRunner(pkg: ModPkg): Promise<IModRunner | null> {
     return createModRunnerByPath(pkg.type, entryPath, pkg.name);
 }
 
+/**
+ * Get the type of a mod at the given path
+ * @param path Path to check
+ * @returns The mod type or null if not a valid mod
+ */
+export async function getModType(modPath: string): Promise<ModType | null> {
+    // Check each mod type in order
+    for (const [type, creator] of Object.entries(modCreators)) {
+        const mod = await creator(modPath, "");
+        if (mod && await mod.isType(modPath)) {
+            return type as ModType;
+        }
+    }
+    return null;
+}
+
 export type { IModRunner };
 
