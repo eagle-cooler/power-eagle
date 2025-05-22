@@ -1,105 +1,144 @@
 # Active Context
 
 ## Current Focus
-- Package Management System
-- Tab Management System
-- Mod Name Display Consistency
+- Refactoring mod runner architecture for better maintainability and extensibility
+- Separating core infrastructure from mod type implementations
+- Improving module loading and context management
 
 ## Recent Changes
-1. Package Manager Enhancements:
-   - Added functionality to uninstall all packages when removing a bucket
-   - Made installed package names clickable to open their tabs
-   - Improved bucket removal process with proper cleanup
-   - Fixed tab name display consistency across the application
+1. Mod Runner Architecture
+   - Moved V1 mod implementation to modSpecs directory
+   - Created utils.ts for shared functionality
+   - Simplified core interfaces in i.ts
+   - Improved module loading system
 
-2. Tab System Improvements:
-   - Implemented consistent mod name display in tabs
-   - Added tab name updates when mods are installed
-   - Improved tab history management for mod names
+2. Code Organization
+   - Core infrastructure in modRunner/
+     - i.ts: Core interfaces and types
+     - utils.ts: Shared utilities
+     - index.ts: Mod type routing
+   - Mod implementations in modSpecs/
+     - v1.ts: V1 mod implementation
 
-3. UI/UX Improvements:
-   - Added visual feedback for clickable package names
-   - Improved bucket management interface
-   - Enhanced package status display
+3. Module Loading
+   - Improved CommonJS module loading
+   - Added module caching
+   - Better error handling
+   - Cleaner context injection
 
 ## Active Decisions
-1. Package Management:
-   - Bucket removal now includes uninstalling all associated packages
-   - Only installed packages can be opened in tabs
-   - Package names show actual mod names when available
+1. Architecture
+   - Separate core infrastructure from mod implementations
+   - Use utility functions for common operations
+   - Keep interfaces in core directory
+   - Move mod type implementations to modSpecs
 
-2. Tab Management:
-   - Tab names are updated to show mod names from metadata
-   - Tab history maintains mod names for consistency
-   - Built-in tabs (Search, Package Manager) remain unchanged
+2. Module Loading
+   - Use CommonJS for compatibility
+   - Cache loaded modules
+   - Handle different export types
+   - Provide clear error messages
 
-3. User Interface:
-   - Clear visual distinction between clickable and non-clickable items
-   - Consistent naming across all views
-   - Improved error handling and user feedback
+3. Context Management
+   - Base context in core interfaces
+   - Mod-specific context extensions
+   - Type-safe context preparation
+   - API versioning support
 
 ## Next Steps
-1. Continue monitoring package management system performance
-2. Consider adding more user feedback for package operations
-3. Evaluate potential improvements to tab management system
+1. Short Term
+   - Test V1 mod implementation
+   - Verify module loading
+   - Check context injection
+   - Validate error handling
 
-## Important Patterns
-1. Package Management:
-   - Always clean up associated resources when removing buckets
-   - Maintain consistency between package names and mod names
-   - Provide clear visual feedback for interactive elements
+2. Medium Term
+   - Plan React mod implementation
+   - Design JS mod implementation
+   - Improve error reporting
+   - Add more utility functions
 
-2. Tab Management:
-   - Use mod metadata for display names
-   - Maintain tab history for better user experience
-   - Ensure consistent behavior across all tab operations
+3. Long Term
+   - Implement React mod support
+   - Add JS mod support
+   - Enhance context system
+   - Improve module loading
 
-## Learnings
-1. Package System:
-   - Importance of proper cleanup when removing buckets
-   - Need for consistent naming across different views
-   - Value of clear user feedback for operations
+## Current Considerations
+1. Technical
+   - Module loading performance
+   - Context type safety
+   - Error handling clarity
+   - Code maintainability
 
-2. Tab System:
-   - Benefits of using mod metadata for display names
-   - Importance of maintaining tab history
-   - Need for clear visual feedback in UI
+2. Architectural
+   - Mod type extensibility
+   - Interface stability
+   - Utility function reuse
+   - Documentation needs
+
+3. User Experience
+   - Error message clarity
+   - Loading performance
+   - Mod compatibility
+   - Development experience
 
 ## Project Insights
-1. User Experience:
-   - Clear visual feedback is crucial for interactive elements
-   - Consistency in naming improves usability
-   - Proper cleanup prevents system issues
+1. Architecture
+   - Separation of concerns improves maintainability
+   - Utility functions reduce code duplication
+   - Clear interfaces enable better testing
+   - Modular design supports future extensions
 
-2. System Design:
-   - Package management and tab system are closely integrated
-   - Mod metadata is central to consistent naming
-   - Error handling and user feedback are essential
+2. Development
+   - CommonJS modules work well for compatibility
+   - Context injection needs careful typing
+   - Error handling should be consistent
+   - Documentation is crucial for maintainability
 
-## Current Patterns
-1. Mod Structure:
-   ```
-   mod-folder/
-   ├── index.js (or main.js)
-   └── styles.css (optional)
-   ```
+3. Testing
+   - Module loading needs thorough testing
+   - Context injection should be verified
+   - Error cases must be covered
+   - Performance should be monitored
 
-2. Mod Loading:
-   - Validate mod structure
-   - Load module with context
-   - Mount mod to container
-   - Handle cleanup on unmount
+## Important Patterns
+1. Code Organization
+   - Core infrastructure separate from implementations
+   - Shared utilities in dedicated file
+   - Clear interface definitions
+   - Consistent error handling
 
-3. Error Handling:
-   - Clear error messages
-   - Proper type checking
-   - Safe global context management
+2. Module Loading
+   - Cache loaded modules
+   - Handle different export types
+   - Provide clear error messages
+   - Support CommonJS format
+
+3. Context Management
+   - Base context in core
+   - Mod-specific extensions
+   - Type-safe preparation
+   - Version-aware APIs
 
 ## Current Challenges
-1. Balancing simplicity with power
-2. Ensuring mod compatibility
-3. Managing dependencies
-4. Maintaining performance
+1. Technical
+   - Module loading edge cases
+   - Context type safety
+   - Error handling consistency
+   - Performance optimization
+
+2. Architectural
+   - Mod type extensibility
+   - Interface stability
+   - Utility function organization
+   - Documentation maintenance
+
+3. Development
+   - Testing coverage
+   - Error case handling
+   - Performance monitoring
+   - Code maintainability
 
 ## Recent Learnings
 1. Project scope and requirements

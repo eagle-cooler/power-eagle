@@ -1,8 +1,9 @@
+/* eslint-disable no-undef */
 module.exports = {
     name: 'About 1',
     render: () => `
         <div class="about">
-            <h2>This is a test mod 1</h2>
+            <h2>Power Eagle</h2>
             <p id="content"></p>
         </div>
     `,

@@ -18,8 +18,10 @@
 - Tab state persistence
 
 ### Mod System
-- V1 mod support
+- Modular architecture with separate mod specifications
+- V1 mod support (legacy)
 - React mod support (planned)
+- JS mod support (planned)
 - Mod metadata handling
 - Mod name management
 - Context injection
@@ -42,6 +44,29 @@
    - Package names from folder structure
    - Mod names from metadata
    - Display name consistency
+
+### Mod System Architecture
+1. Core Components
+   - `modRunner/`: Core mod running infrastructure
+     - `i.ts`: Core interfaces and types
+     - `utils.ts`: Shared utility functions
+     - `index.ts`: Mod type routing and creation
+   - `modSpecs/`: Mod type implementations
+     - `v1.ts`: V1 mod implementation
+     - Future: react.ts, js.ts
+
+2. Mod Loading System
+   - CommonJS module loading
+   - Module caching
+   - Context injection
+   - Style loading
+   - Entry point discovery
+
+3. Context Management
+   - Base context in core interfaces
+   - Mod-specific context extensions
+   - Context preparation per mod type
+   - API versioning support
 
 ### Tab Management
 1. Tab Structure
@@ -77,21 +102,21 @@
    - Mod runner creation
    - Bucket creation
 
-### Tab Management
-1. State Management
-   - Tab history persistence
-   - Active tab tracking
-   - Tab state updates
+### Mod System
+1. Strategy Pattern
+   - Different mod type implementations
+   - Common interface for all mods
+   - Pluggable mod specifications
 
-2. Event Handling
-   - Tab selection
-   - Tab closure
-   - Tab history updates
+2. Factory Pattern
+   - Mod type routing
+   - Mod instance creation
+   - Context preparation
 
-3. UI Patterns
-   - Tab bar display
-   - Tab content rendering
-   - Interactive elements
+3. Utility Pattern
+   - Shared module loading
+   - Common file operations
+   - Cache management
 
 ## Component Relationships
 
@@ -108,10 +133,10 @@
 - Shows mod names
 
 ### Mod System
-- Loads mods
-- Manages mod context
-- Provides mod metadata
-- Handles mod lifecycle
+- Core infrastructure in modRunner
+- Mod implementations in modSpecs
+- Shared utilities for common operations
+- Type-safe interfaces for mod interaction
 
 ## Critical Implementation Paths
 
@@ -132,16 +157,18 @@
    - Update bucket
    - Remove bucket with cleanup
 
-### Tab Operations
-1. Tab Creation
-   - Check mod existence
-   - Create tab with mod name
-   - Update tab history
+### Mod Operations
+1. Mod Loading
+   - Entry point discovery
+   - Module loading
+   - Context preparation
+   - Style loading
 
-2. Tab Management
-   - Track active tab
-   - Handle tab closure
-   - Maintain tab history
+2. Mod Execution
+   - Container mounting
+   - Event handling
+   - State management
+   - Cleanup on unmount
 
 ## System Constraints
 
@@ -156,11 +183,11 @@
    - Must follow naming conventions
    - Must be compatible with mod system
 
-### Tab System
-1. Tab Limitations
-   - Maximum tab history size
-   - Built-in tab restrictions
-   - Tab name length limits
+### Mod System
+1. Mod Type Requirements
+   - Must implement IModRunner
+   - Must handle context preparation
+   - Must manage lifecycle events
 
 2. State Management
    - Local storage limitations
@@ -179,6 +206,17 @@
    - Verify package validity
    - Update all related states
    - Provide user feedback
+
+### Mod System
+1. Mod Implementation
+   - Follow interface contracts
+   - Handle errors gracefully
+   - Provide clear feedback
+
+2. Context Management
+   - Extend base context
+   - Maintain type safety
+   - Document API changes
 
 ### Tab Management
 1. Tab Operations

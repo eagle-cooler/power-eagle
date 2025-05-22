@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-undef
 module.exports = {
     name: 'About 1',
     render: () => `
