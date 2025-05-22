@@ -2,7 +2,6 @@ import ModPkg from "../modMgr/pkg";
 import { POWER_EAGLE_PKGS_PATH } from "../modMgr/utils";
 import { IModRunner } from "./i";
 import { V1ModLoader } from "./v1";
-import type { ModContext } from "./moduleLoader";
 
 // Use existing modules if available (for browser bundlers) otherwise require them on Node.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
@@ -62,3 +61,5 @@ export async function createModRunner(pkg: ModPkg): Promise<IModRunner | null> {
   const entryPath = path.join(POWER_EAGLE_PKGS_PATH, pkg.name, pkg.entryPoint);
   return createModRunnerByPath(pkg.type, entryPath, pkg.name);
 }
+export type { IModRunner };
+
