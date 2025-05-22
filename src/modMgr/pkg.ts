@@ -60,13 +60,28 @@ class ModPkg {
         }
 
         const modJsonPath = path.join(pkgPath, "mod.json");
+        const sourcePath = localLinksJson.getValue(name);
+
+        // Check if it's a v1 mod (no mod.json required)
+        const hasJsFiles = fs.readdirSync(pkgPath).some(file => file.endsWith(".js"));
+        if (!fs.existsSync(modJsonPath) && hasJsFiles) {
+            // It's a v1 mod
+            return new ModPkg({
+                name,
+                type: "v1",
+                version: "1.0.0",
+                entryPoint: fs.existsSync(path.join(pkgPath, "index.js")) ? "index.js" : "main.js",
+                description: "",
+                sourcePath
+            });
+        }
+
+        // For other mod types, require mod.json
         if (!fs.existsSync(modJsonPath)) {
             throw new Error(`Package ${name} is missing mod.json`);
         }
 
         const modJson = JSON.parse(fs.readFileSync(modJsonPath, "utf8"));
-        const sourcePath = localLinksJson.getValue(name);
-
         return new ModPkg({
             name,
             type: modJson.type,
