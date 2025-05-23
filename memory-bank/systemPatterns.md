@@ -9,6 +9,7 @@
 - Bucket management (add, remove, update)
 - Package status tracking
 - Mod name display consistency
+- Remote package handling in mods.json
 
 ### Tab Management System
 - Built-in tabs (Search, Package Manager)
@@ -23,6 +24,7 @@
 - Mod metadata handling
 - Mod name management
 - Context injection
+- Direct mod class implementation
 
 ## Key Technical Decisions
 
@@ -31,17 +33,20 @@
    - Buckets as git repositories
    - Local bucket for development
    - Package metadata in mod.json
+   - Remote package links in mods.json
 
 2. Package Operations
    - Install from bucket
    - Uninstall with cleanup
    - Update with version tracking
    - Bucket removal with package cleanup
+   - Direct remote package installation
 
 3. Name Management
    - Package names from folder structure
    - Mod names from metadata
    - Display name consistency
+   - Remote package name handling
 
 ### Mod System Architecture
 1. Core Components
@@ -58,6 +63,7 @@
    - Context injection
    - Style loading
    - Entry point discovery
+   - Direct mod class implementation
 
 3. Context Management
    - Base context in core interfaces
@@ -88,6 +94,7 @@
    - Buckets as package repositories
    - Local storage for installed packages
    - Package metadata management
+   - Remote package handling
 
 2. Observer Pattern
    - Package status updates
@@ -98,12 +105,14 @@
    - Package creation
    - Mod runner creation
    - Bucket creation
+   - Remote package installation
 
 ### Mod System
 1. Strategy Pattern
    - Different mod type implementations
    - Common interface for all mods
    - Pluggable mod specifications
+   - Direct mod class implementation
 
 2. Factory Pattern
    - Mod type routing
@@ -122,6 +131,7 @@
 - Handles package operations
 - Updates tab names
 - Manages package status
+- Handles remote package installation
 
 ### Tab System
 - Displays active tabs
@@ -134,6 +144,7 @@
 - Mod implementations in modSpecs
 - Shared utilities for common operations
 - Type-safe interfaces for mod interaction
+- Direct mod class implementation
 
 ## Critical Implementation Paths
 
@@ -143,6 +154,7 @@
    - Install from bucket
    - Update package status
    - Update tab name
+   - Handle remote package installation
 
 2. Uninstallation
    - Remove package files
@@ -153,6 +165,7 @@
    - Add bucket from git
    - Update bucket
    - Remove bucket with cleanup
+   - Handle remote package links
 
 ### Mod Operations
 1. Mod Loading
@@ -160,6 +173,7 @@
    - Module loading
    - Context preparation
    - Style loading
+   - Direct mod class implementation
 
 2. Mod Execution
    - Container mounting
@@ -174,22 +188,26 @@
    - Must be valid git repository
    - Must contain valid packages
    - Must have proper metadata
+   - Remote links must be package-only
 
 2. Package Requirements
    - Must have valid mod.json
    - Must follow naming conventions
    - Must be compatible with mod system
+   - Remote packages must be valid
 
 ### Mod System
 1. Mod Type Requirements
    - Must implement IModRunner
    - Must handle context preparation
    - Must manage lifecycle events
+   - Must provide direct class implementation
 
 2. State Management
    - Local storage limitations
    - State synchronization
    - Error handling
+   - Async operation handling
 
 ## Implementation Guidelines
 
@@ -198,22 +216,26 @@
    - Always clean up on removal
    - Maintain package consistency
    - Handle errors gracefully
+   - Support remote package installation
 
 2. Package Operations
    - Verify package validity
    - Update all related states
    - Provide user feedback
+   - Handle remote package installation
 
 ### Mod System
 1. Mod Implementation
    - Follow interface contracts
    - Handle errors gracefully
    - Provide clear feedback
+   - Implement direct class handling
 
 2. Context Management
    - Extend base context
    - Maintain type safety
    - Document API changes
+   - Handle async operations
 
 ### Tab Management
 1. Tab Operations
@@ -235,72 +257,27 @@ interface IModRunner {
     isType(path: string): Promise<boolean>;
 }
 
-// Type detection happens before file operations
-async function getModType(modPath: string): Promise<ModType | null> {
+// Type detection returns actual mod class implementation
+async function getModType(modPath: string): Promise<typeof V1Mod | null> {
     for (const [type, ModClass] of Object.entries(modImpls)) {
         if (!ModClass) continue;
-        const mod = new ModClass();
-        if (await mod.isType(modPath)) {
-            return type as ModType;
+        if (await ModClass.isType(modPath)) {
+            return ModClass;
         }
     }
     return null;
 }
 ```
 
-### Installation Process
+### Remote Package Installation
 ```typescript
-// Clear order of operations
-async function install(bucket: ModBucket, name: string): Promise<ModPkg | null> {
-    // 1. Get mod type from source
-    const modType = await getModType(pkgPath);
-    
-    // 2. Run pre-install hook
-    if ('preInstall' in ModClass) {
-        ModClass.preInstall(targetPath);
+// Remote package installation from mods.json
+async function installRemotePackage(remoteLink: string, name: string): Promise<ModPkg | null> {
+    // Remote links are guaranteed to be package-only
+    const remoteBucket = await ModBucket.addFromGitUrl(remoteLink);
+    if (remoteBucket) {
+        return await ModPkg.install(remoteBucket, name);
     }
-    
-    // 3. Copy files
-    fs.cpSync(pkgPath, targetPath, { recursive: true });
-    
-    // 4. Run post-install hook
-    if ('postInstall' in ModClass) {
-        ModClass.postInstall(targetPath);
-    }
+    return null;
 }
-```
-
-### Type System
-```typescript
-// Minimal but clear type definitions
-const modImpls = {
-    v1: V1Mod
-};
-
-// Proper handling of undefined cases
-if (!ModClass) {
-    console.warn(`[ModRunner] ${type} mods are not supported yet`);
-    continue;
-}
-```
-
-## Key Patterns
-1. Type Detection
-   - Separate from module loading
-   - Each mod type defines its own detection logic
-   - Clear handling of unsupported types
-
-2. Installation Process
-   - Clear order of operations
-   - Pre/post hooks for customization
-   - Proper cleanup on failure
-
-3. Type System
-   - Minimal type definitions
-   - Clear handling of undefined cases
-   - Type inference where possible
-
-4. Error Handling
-   - Consistent across mod types
-   - Clear error messages
-   - Proper cleanup on failure 
+``` 

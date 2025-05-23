@@ -6,7 +6,7 @@
 - Better type safety and error handling
 - Mod Runner Architecture
 - Mod Type Detection and Installation
-- Removed React mod support to simplify core runner
+- Remote package handling in mods.json
 
 ## Recent Changes
 1. Mod Runner Architecture
@@ -28,11 +28,13 @@
    - Added lifecycle hooks for installation/uninstallation
    - Improved error handling and cleanup
    - Better type safety in package operations
+   - Added support for remote packages in mods.json
 
 4. Simplified mod type detection in `getModType`:
    - Now uses `isType()` method from each mod implementation
    - Properly handles undefined/unsupported mod types
    - Skips unsupported types with warning messages
+   - Returns actual mod class implementation instead of type string
 
 5. Fixed mod installation process:
    - Get mod type from source path before copying files
@@ -40,13 +42,19 @@
    - Copy files
    - Run post-install hook after copying
    - Handle dependencies in post-install hook
+   - Support remote package installation from mods.json
 
 6. Improved type safety:
    - Removed explicit type annotations where TypeScript can infer them
    - Fixed constructor type issues in mod implementations
    - Added proper error handling for unsupported mod types
+   - Better handling of async operations
 
-7. Stripped React mod support from modRunner
+7. Remote Package Support:
+   - Added support for remote links in mods.json
+   - Remote links are guaranteed to be package-only (no nested buckets)
+   - Direct installation from remote repositories
+   - Simplified remote package handling logic
 
 ## Active Decisions
 1. Architecture
@@ -60,38 +68,32 @@
    - Proper lifecycle hooks
    - Better error handling
    - Cleaner cleanup process
+   - Direct remote package installation
 
 3. Type Safety
    - Unified interface for all mod operations
    - Better type checking
    - Clearer error messages
    - Improved maintainability
+   - Proper async operation handling
 
 4. Mod Type Detection:
    - Each mod type must implement `isType()` method
    - Type detection happens before file operations
    - Unsupported types are logged and skipped
+   - Returns actual mod class implementation
 
 5. Installation Process:
    - Pre-install hooks run before file operations
    - Post-install hooks handle dependencies
    - Cleanup on failure
+   - Support for remote package installation
 
-6. Type System:
-   - Using TypeScript's type inference where possible
-   - Keeping type definitions minimal but clear
-   - Proper handling of undefined/unsupported cases
-
-7. Using ES modules for React mods
-8. React Component Structure
-   - Using functional components with hooks
-   - Proper context prop passing
-   - Clean component organization
-
-9. Mod Context Integration
-   - Passing context through props
-   - Maintaining React's component lifecycle
-   - Ensuring proper React instance usage
+6. Remote Package Handling:
+   - Remote links in mods.json are package-only
+   - Direct installation from remote repositories
+   - No nested bucket support
+   - Simplified installation flow
 
 ## Next Steps
 1. Short Term
@@ -99,27 +101,19 @@
    - Verify package management
    - Check error handling
    - Validate cleanup process
+   - Test remote package installation
 
 2. Medium Term
-   - Plan React mod implementation
-   - Design JS mod implementation
    - Improve error reporting
    - Add more utility functions
+   - Enhance remote package handling
+   - Add package version tracking
 
 3. Long Term
-   - Implement React mod support
-   - Add JS mod support
    - Enhance package management
    - Improve development experience
-
-4. Implement proper React and JS mod types
-5. Add more robust error handling for dependency installation
-6. Consider adding mod type validation in pre-install hooks
-
-7. Test React mod functionality
-8. Document React mod development guidelines
-9. Add example React mods
-10. Implement additional React features
+   - Add package dependency resolution
+   - Implement package updates
 
 ## Current Considerations
 1. Technical
@@ -127,18 +121,21 @@
    - Error handling clarity
    - Type safety
    - Code maintainability
+   - Remote package reliability
 
 2. Architectural
    - Mod type extensibility
    - Interface stability
    - Package management flexibility
    - Documentation needs
+   - Remote package structure
 
 3. User Experience
    - Error message clarity
    - Installation performance
    - Mod compatibility
    - Development experience
+   - Remote package handling
 
 ## Project Insights
 1. Architecture
@@ -146,18 +143,21 @@
    - Instance methods provide better encapsulation
    - Clear interfaces enable better testing
    - Modular design supports future extensions
+   - Remote package support simplifies installation
 
 2. Development
    - Type safety is crucial
    - Error handling should be consistent
    - Documentation is important
    - Clean code is maintainable
+   - Async operations need proper handling
 
 3. Testing
    - Package management needs thorough testing
    - Error cases must be covered
    - Performance should be monitored
    - Edge cases should be handled
+   - Remote package scenarios need testing
 
 ## Important Patterns
 1. Code Organization
@@ -165,42 +165,21 @@
    - Clear separation of concerns
    - Consistent error handling
    - Type-safe operations
+   - Proper async handling
 
 2. Package Management
    - Mod type-specific logic
    - Lifecycle hooks
    - Proper cleanup
    - Error handling
+   - Remote package support
 
 3. Type Safety
    - Unified interface
    - Clear type definitions
    - Proper error handling
    - Consistent patterns
-
-4. React Mod Structure
-```jsx
-import React from 'react';
-
-const MyMod = ({ context }) => {
-    const [state, setState] = React.useState(initialState);
-    return (
-        <div>
-            {/* Component content */}
-        </div>
-    );
-};
-
-export default {
-    name: 'MyMod',
-    component: MyMod
-};
-```
-
-5. Context Usage
-- Pass context through props
-- Use React's built-in state management
-- Maintain proper component lifecycle
+   - Async operation types
 
 ## Current Challenges
 1. Technical
@@ -208,28 +187,21 @@ export default {
    - Error handling consistency
    - Performance optimization
    - Type safety maintenance
+   - Remote package reliability
 
 2. Architectural
    - Mod type extensibility
    - Interface stability
    - Package management flexibility
    - Documentation maintenance
+   - Remote package structure
 
 3. Development
    - Testing coverage
    - Error case handling
    - Performance monitoring
    - Code maintainability
-
-4. React Hook Integration
-   - Ensuring proper hook usage
-   - Maintaining React context
-   - Avoiding multiple React instances
-
-5. Module Format
-   - Using ES modules consistently
-   - Ensuring proper bundling
-   - Maintaining compatibility
+   - Remote package testing
 
 ## Recent Learnings
 1. Single interface is better than separate static/instance interfaces
@@ -240,12 +212,39 @@ export default {
 6. Installation hooks should be clearly ordered
 7. TypeScript's type inference can simplify code
 8. Error handling should be consistent across mod types
-9. React Integration
-   - ES modules work better with Vite
-   - Functional components are preferred
-   - Proper hook usage is critical
+9. Remote packages simplify installation process
+10. Async operations need proper type handling
 
-10. Mod Development
-    - Keep components simple
-    - Use standard React patterns
-    - Maintain proper context flow 
+## Current Challenges
+1. Technical
+   - Package management edge cases
+   - Error handling consistency
+   - Performance optimization
+   - Type safety maintenance
+   - Remote package reliability
+
+2. Architectural
+   - Mod type extensibility
+   - Interface stability
+   - Package management flexibility
+   - Documentation maintenance
+   - Remote package structure
+
+3. Development
+   - Testing coverage
+   - Error case handling
+   - Performance monitoring
+   - Code maintainability
+   - Remote package testing
+
+## Recent Learnings
+1. Single interface is better than separate static/instance interfaces
+2. Instance methods provide better encapsulation
+3. No need for placeholder implementations
+4. Clear error handling is crucial
+5. Type detection should be separate from module loading
+6. Installation hooks should be clearly ordered
+7. TypeScript's type inference can simplify code
+8. Error handling should be consistent across mod types
+9. Remote packages simplify installation process
+10. Async operations need proper type handling 
