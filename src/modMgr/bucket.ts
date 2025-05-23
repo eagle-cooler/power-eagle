@@ -75,7 +75,8 @@ class ModBucket {
         const pkgs = isPackage ? [folderName] : 
             fs.readdirSync(bucketPath)
                 .filter(file => !file.startsWith(".") && !file.startsWith("_"))
-                .filter(file => fs.statSync(path.join(bucketPath, file)).isDirectory());
+                .filter(file => fs.statSync(path.join(bucketPath, file)).isDirectory())
+                .filter(file => file !== "node_modules");
 
         return new ModBucket({
             type,
@@ -113,7 +114,7 @@ class ModBucket {
                             }
                         }
                         return null;
-                    }).filter((pkg): pkg is string => pkg !== null);
+                    }).filter((pkg): pkg is string => pkg !== null && pkg !== "node_modules");
                 } else {
                     console.error(`Invalid mods.json format in ${folderName}: expected array`);
                     return new ModBucket({

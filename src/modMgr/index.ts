@@ -54,8 +54,8 @@ class _ModMgr {
       ) {
         continue;
       }
-      // folder not . or _
-      if (pkgPath.startsWith(".") || pkgPath.startsWith("_")) {
+      // folder not . or _ or node_modules
+      if (pkgPath.startsWith(".") || pkgPath.startsWith("_") || pkgPath === "node_modules") {
         continue;
       }
       const pkg = ModPkg.loadPkg(pkgPath);
@@ -162,11 +162,11 @@ class _ModMgr {
     return null;
   }
 
-  uninstallPkg(name: string): boolean {
+  async uninstallPkg(name: string): Promise<boolean> {
     const pkg = this.pkgs.get(name);
     if (!pkg) return false;
     const success = pkg.uninstall();
-    if (success) {
+    if (await success) {
       this.pkgs.delete(name);
     }
     return success;

@@ -2,7 +2,6 @@ import ModPkg from "../modMgr/pkg";
 import { POWER_EAGLE_PKGS_PATH } from "../modMgr/utils";
 import { IModRunner } from "./i";
 import V1Mod from "../modSpecs/v1";
-import ReactMod from "../modSpecs/react";
 
 // Use existing modules if available (for browser bundlers) otherwise require them on Node.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");

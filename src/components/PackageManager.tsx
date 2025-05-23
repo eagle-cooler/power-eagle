@@ -3,7 +3,13 @@ import ModMgr from '../modMgr';
 import ModBucket from '../modMgr/bucket';
 import ModPkg from '../modMgr/pkg';
 import { localMgr } from "../modMgr/localMgr";
+import { POWER_EAGLE_SHARED_NODE_MODULES, POWER_EAGLE_PKGS_PATH, updateSharedDependencies } from '../modMgr/utils';
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
+const fs = (global as unknown as { fs: typeof import("fs") }).fs || require("fs");
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+const { execSync } = (global as unknown as { execSync: typeof import("child_process").execSync }).execSync || require("child_process");
 
 interface PackageStatus {
   installed: boolean;
@@ -98,26 +104,69 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onTabSelect }) => {
     }
   }, [selectedBucket, buckets]);
 
+  useEffect(() => {
+    // Create shared node_modules directory if it doesn't exist
+    if (!fs.existsSync(POWER_EAGLE_SHARED_NODE_MODULES)) {
+      fs.mkdirSync(POWER_EAGLE_SHARED_NODE_MODULES, { recursive: true });
+    }
+  }, []);
+
   const handleInstall = async (pkgName: string) => {
     const bucket = buckets.find(b => b.folderName === selectedBucket);
     if (bucket) {
-      const pkg = await ModMgr.installPkg(pkgName, bucket);
-      if (pkg) {
-        // Get the mod name and update the tab history
-        const modName = ModMgr.getModName(pkgName);
-        if (modName && modName !== pkgName) {
-          localMgr.addToTabHistory({ id: pkgName, title: modName });
-        }
+      try {
+        const pkg = await ModMgr.installPkg(pkgName, bucket);
+        if (pkg) {
+          // Get the mod name and update the tab history
+          const modName = ModMgr.getModName(pkgName);
+          if (modName && modName !== pkgName) {
+            localMgr.addToTabHistory({ id: pkgName, title: modName });
+          }
 
-        setPackages(prev => {
-          const next = new Map(prev);
-          next.set(pkgName, {
-            installed: true,
-            version: pkg.version,
-            bucketVersion: pkg.version,
-            needsUpdate: false
+          // Install dependencies to shared node_modules if package.json exists
+          const pkgPath = path.join(POWER_EAGLE_PKGS_PATH, pkgName);
+          const packageJsonPath = path.join(pkgPath, 'package.json');
+          if (fs.existsSync(packageJsonPath)) {
+            try {
+              // Read package.json
+              const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+              if (packageJson.dependencies || packageJson.devDependencies) {
+                // Update shared dependencies tracking
+                updateSharedDependencies(pkgName, {
+                  ...packageJson.dependencies,
+                  ...packageJson.devDependencies
+                });
+
+                // Install dependencies to shared node_modules
+                execSync('npm install', {
+                  cwd: POWER_EAGLE_SHARED_NODE_MODULES,
+                  stdio: 'inherit'
+                });
+              }
+            } catch (err) {
+              console.error(`Failed to install dependencies for ${pkgName}:`, err);
+            }
+          }
+
+          setPackages(prev => {
+            const next = new Map(prev);
+            next.set(pkgName, {
+              installed: true,
+              version: pkg.version,
+              bucketVersion: pkg.version,
+              needsUpdate: false
+            });
+            return next;
           });
-          return next;
+        }
+      } catch (err) {
+        console.error(`Failed to install ${pkgName}:`, err);
+        await eagle.dialog.showMessageBox({
+          type: 'error',
+          title: 'Installation Failed',
+          message: `Could not install ${pkgName}`,
+          detail: err instanceof Error ? err.message : 'Unknown error occurred',
+          buttons: ['OK']
         });
       }
     }
@@ -125,17 +174,33 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onTabSelect }) => {
 
   const handleUninstall = async (pkgName: string) => {
     const pkg = ModMgr.pkgs.get(pkgName);
-    if (pkg && await pkg.uninstall()) {
-      setPackages(prev => {
-        const next = new Map(prev);
-        next.set(pkgName, {
-          installed: false,
-          version: "",
-          bucketVersion: next.get(pkgName)?.bucketVersion || "",
-          needsUpdate: false
+    if (pkg) {
+      try {
+        // Remove package from shared dependencies tracking
+        updateSharedDependencies(pkgName, {});
+
+        if (await pkg.uninstall()) {
+          setPackages(prev => {
+            const next = new Map(prev);
+            next.set(pkgName, {
+              installed: false,
+              version: "",
+              bucketVersion: next.get(pkgName)?.bucketVersion || "",
+              needsUpdate: false
+            });
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to uninstall ${pkgName}:`, err);
+        await eagle.dialog.showMessageBox({
+          type: 'error',
+          title: 'Uninstallation Failed',
+          message: `Could not uninstall ${pkgName}`,
+          detail: err instanceof Error ? err.message : 'Unknown error occurred',
+          buttons: ['OK']
         });
-        return next;
-      });
+      }
     }
   };
 

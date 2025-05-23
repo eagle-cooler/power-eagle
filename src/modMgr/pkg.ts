@@ -147,6 +147,11 @@ class ModPkg {
       return null;
     }
 
+    // Validate package name
+    if (name === "node_modules") {
+      throw new Error("Package name cannot be 'node_modules'");
+    }
+
     try {
       // Get the mod type implementation
       const ModClass = await getModType(pkgPath);
