@@ -123,8 +123,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onTabSelect }) => {
     }
   };
 
-  const handleUninstall = (pkgName: string) => {
-    if (ModMgr.uninstallPkg(pkgName)) {
+  const handleUninstall = async (pkgName: string) => {
+    const pkg = ModMgr.pkgs.get(pkgName);
+    if (pkg && await pkg.uninstall()) {
       setPackages(prev => {
         const next = new Map(prev);
         next.set(pkgName, {
