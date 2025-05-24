@@ -6,7 +6,7 @@ This directory contains scripts for checking and enforcing the `devTools: false`
 
 ### Check Manifest
 ```bash
-node .github/scripts/check-manifest.js
+node .github/scripts/check-manifest.cjs
 ```
 This script checks if `devTools` is set to `false` in `manifest.json`. It will:
 - Exit with code 0 if the check passes
@@ -19,7 +19,7 @@ This script checks if `devTools` is set to `false` in `manifest.json`. It will:
 
 ### Setup Git Hooks (Optional)
 ```bash
-node .github/scripts/setup-commit.js
+node .github/scripts/setup-commit.cjs
 ```
 This script will:
 1. Check if git hooks already exist
@@ -30,7 +30,7 @@ This script will:
 
 ### Uninstall Git Hooks
 ```bash
-node .github/scripts/uninstall-hooks.js
+node .github/scripts/uninstall-hooks.cjs
 ```
 This script will:
 1. Remove the pre-commit hook
@@ -42,18 +42,18 @@ This script will:
 
 1. To just check and fix the manifest:
    ```bash
-   node .github/scripts/check-manifest.js
+   node .github/scripts/check-manifest.cjs
    ```
    This will automatically fix `devTools` if needed and stage the changes.
 
 2. To set up the git hooks (optional):
    ```bash
-   node .github/scripts/setup-precommit.js
+   node .github/scripts/setup-precommit.cjs
    ```
 
 3. To remove the git hooks:
    ```bash
-   node .github/scripts/uninstall-hooks.js
+   node .github/scripts/uninstall-hooks.cjs
    ```
 
 The hooks will:
