@@ -1,41 +1,45 @@
 # Power Eagle Project Brief
 
 ## Project Overview
-Power Eagle is an Eagle plugin that enhances the Eagle experience by providing a collection of power user and developer tools. It functions as a meta-plugin, offering additional tooling capabilities through a tab-sized interface.
+Power Eagle is a meta-plugin for Eagle that provides a collection of power user and developer tools through a tab-sized interface. It enables users to extend functionality without creating full plugins for simple tasks.
 
 ## Core Requirements
-1. Modular Architecture
-   - Support for mods and mod buckets
+1. Modular Design
+   - Support for V1 mods and mod buckets
    - Easy extensibility
    - Simple mod creation process
 
 2. Package Management
-   - Mod installation capabilities
-   - Mod bucket support
-   - Version management
+   - Shared node_modules for dependencies
+   - Version conflict resolution
+   - Core package maintenance
+   - Efficient package installation
 
 3. User Interface
-   - Tab-sized interface
-   - Intuitive tool access
-   - Clean and modern design
+   - Tab-based interface
+   - Built-in tools (Search, Package Manager)
+   - Dynamic mod tabs
+   - Consistent naming
 
-4. Technical Requirements
-   - Git integration
-   - TypeScript/JavaScript based
-   - Modern web technologies (Vite, TailwindCSS)
+4. Development Experience
+   - TypeScript for type safety
+   - CommonJS module support
+   - Local development support
+   - Clear error handling
 
 ## Project Goals
-1. Provide a seamless way to extend Eagle functionality
-2. Simplify the process of adding new tools
-3. Create a maintainable and scalable architecture
-4. Support community contributions and mods
+1. Provide a robust platform for mod development
+2. Ensure efficient package management
+3. Maintain high performance
+4. Support easy extensibility
+5. Enable local development and testing
 
 ## Success Criteria
-1. Easy installation and setup process
-2. Smooth integration with Eagle
-3. Reliable mod management system
-4. Active community participation
-5. High-quality built-in tools
+1. Successful mod installation and management
+2. Efficient dependency handling
+3. Smooth user experience
+4. Developer-friendly environment
+5. Reliable package updates
 
 ## Constraints
 1. Must maintain compatibility with Eagle

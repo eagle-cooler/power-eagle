@@ -2,7 +2,6 @@ import ModPkg from "../modMgr/pkg";
 import { POWER_EAGLE_PKGS_PATH } from "../modMgr/utils";
 import { IModRunner } from "./i";
 import V1Mod from "../modSpecs/v1";
-import ReactMod from "../modSpecs/react";
 
 // Use existing modules if available (for browser bundlers) otherwise require them on Node.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
@@ -48,9 +47,9 @@ export async function createModRunner(pkg: ModPkg): Promise<IModRunner | null> {
 /**
  * Get the type of a mod at the given path
  * @param path Path to check
- * @returns The mod type or null if not a valid mod
+ * @returns The mod class implementation or null if not a valid mod
  */
-export async function getModType(modPath: string): Promise<ModType | null> {
+export async function getModType(modPath: string): Promise<typeof V1Mod | null> {
     // Check each mod type in order
     for (const [type, ModClass] of Object.entries(modImpls)) {
         if (!ModClass) {
@@ -58,7 +57,7 @@ export async function getModType(modPath: string): Promise<ModType | null> {
             continue;
         }
         if (await ModClass.isType(modPath)) {
-            return type as ModType;
+            return ModClass;
         }
     }
     return null;

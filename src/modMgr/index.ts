@@ -54,8 +54,8 @@ class _ModMgr {
       ) {
         continue;
       }
-      // folder not . or _
-      if (pkgPath.startsWith(".") || pkgPath.startsWith("_")) {
+      // folder not . or _ or node_modules
+      if (pkgPath.startsWith(".") || pkgPath.startsWith("_") || pkgPath === "node_modules") {
         continue;
       }
       const pkg = ModPkg.loadPkg(pkgPath);
@@ -113,6 +113,21 @@ class _ModMgr {
   async installPkg(name: string, bucket?: ModBucket): Promise<ModPkg | null> {
     // If bucket is specified, install from that bucket
     if (bucket) {
+      // Check for remote link
+      const remoteLink = bucket.getRemoteLink(name);
+      if (remoteLink) {
+        // For remote links, we know it's a package-only bucket
+        const remoteBucket = await ModBucket.addFromGitUrl(remoteLink);
+        if (remoteBucket) {
+          const pkg = await ModPkg.install(remoteBucket, name);
+          if (pkg) {
+            this.pkgs.set(pkg.name, pkg);
+          }
+          return pkg;
+        }
+      }
+
+      // If no remote link or remote bucket failed, try local installation
       const pkg = await ModPkg.install(bucket, name);
       if (pkg) {
         this.pkgs.set(pkg.name, pkg);
@@ -122,6 +137,21 @@ class _ModMgr {
 
     // If no bucket specified, search all buckets
     for (const [, bucket] of this.buckets) {
+      // Check for remote link
+      const remoteLink = bucket.getRemoteLink(name);
+      if (remoteLink) {
+        // For remote links, we know it's a package-only bucket
+        const remoteBucket = await ModBucket.addFromGitUrl(remoteLink);
+        if (remoteBucket) {
+          const pkg = await ModPkg.install(remoteBucket, name);
+          if (pkg) {
+            this.pkgs.set(pkg.name, pkg);
+            return pkg;
+          }
+        }
+      }
+
+      // If no remote link or remote bucket failed, try local installation
       const pkg = await ModPkg.install(bucket, name);
       if (pkg) {
         this.pkgs.set(pkg.name, pkg);
@@ -132,11 +162,11 @@ class _ModMgr {
     return null;
   }
 
-  uninstallPkg(name: string): boolean {
+  async uninstallPkg(name: string): Promise<boolean> {
     const pkg = this.pkgs.get(name);
     if (!pkg) return false;
     const success = pkg.uninstall();
-    if (success) {
+    if (await success) {
       this.pkgs.delete(name);
     }
     return success;

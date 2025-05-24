@@ -41,13 +41,13 @@ class ModPkg {
     this.sourcePath = options.sourcePath;
   }
 
-  uninstall(): boolean {
+  async uninstall(): Promise<boolean> {
     const pkgPath = path.join(POWER_EAGLE_PKGS_PATH, this.name);
     if (!fs.existsSync(pkgPath)) return false;
 
     try {
       // Get the mod type implementation
-      const ModClass = getModType(pkgPath);
+      const ModClass = await getModType(pkgPath);
       if (ModClass) {
         // Run pre-uninstall hook if it exists
         if ('preUninstall' in ModClass) {
@@ -147,10 +147,14 @@ class ModPkg {
       return null;
     }
 
-    try {
+    // Validate package name
+    if (name === "node_modules") {
+      throw new Error("Package name cannot be 'node_modules'");
+    }
 
+    try {
       // Get the mod type implementation
-      const ModClass = getModType(pkgPath);
+      const ModClass = await getModType(pkgPath);
       if (!ModClass) {
         throw new Error(`No implementation found for mod type ${name}`);
       }
@@ -233,17 +237,38 @@ class ModPkg {
       return false;
     }
 
-    // Copy updated files from bucket
-    fs.cpSync(pkgPath, targetPath, { recursive: true });
+    try {
+      // Get the mod type implementation
+      const ModClass = await getModType(pkgPath);
+      if (ModClass) {
+        // Run pre-installation hook if it exists
+        if ('preInstall' in ModClass) {
+          (ModClass as { preInstall: (path: string) => void }).preInstall(targetPath);
+        }
+      }
 
-    // Reload package data
-    const updatedPkg = ModPkg.loadPkg(this.name);
-    this.type = updatedPkg.type;
-    this.version = updatedPkg.version;
-    this.entryPoint = updatedPkg.entryPoint;
-    this.description = updatedPkg.description;
+      // Copy updated files from bucket
+      fs.cpSync(pkgPath, targetPath, { recursive: true });
 
-    return true;
+      if (ModClass) {
+        // Run post-installation hook if it exists
+        if ('postInstall' in ModClass) {
+          (ModClass as { postInstall: (path: string) => void }).postInstall(targetPath);
+        }
+      }
+
+      // Reload package data
+      const updatedPkg = ModPkg.loadPkg(this.name);
+      this.type = updatedPkg.type;
+      this.version = updatedPkg.version;
+      this.entryPoint = updatedPkg.entryPoint;
+      this.description = updatedPkg.description;
+
+      return true;
+    } catch (err) {
+      console.error(`[ModPkg] Failed to update ${this.name}:`, err);
+      return false;
+    }
   }
 
   isLegacy(): boolean {

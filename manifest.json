@@ -18,7 +18,7 @@
         "url": "dist/index.html",
         "width": 910,
         "height": 650,
-        "alwaysOnTop": true,
+        "alwaysOnTop": false,
         "multiple": false
     }
 }

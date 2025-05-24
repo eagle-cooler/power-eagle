@@ -75,7 +75,8 @@ class ModBucket {
         const pkgs = isPackage ? [folderName] : 
             fs.readdirSync(bucketPath)
                 .filter(file => !file.startsWith(".") && !file.startsWith("_"))
-                .filter(file => fs.statSync(path.join(bucketPath, file)).isDirectory());
+                .filter(file => fs.statSync(path.join(bucketPath, file)).isDirectory())
+                .filter(file => file !== "node_modules");
 
         return new ModBucket({
             type,
@@ -92,12 +93,48 @@ class ModBucket {
         }
 
         // Check for mods.json to determine if it's a bucket
-        const hasModsJson = fs.existsSync(path.join(bucketPath, "mods.json"));
+        const modsJsonPath = path.join(bucketPath, "mods.json");
+        const hasModsJson = fs.existsSync(modsJsonPath);
         const type = hasModsJson ? "bucket" : "package";
-        const pkgs = type === "package" ? [folderName] : 
-            fs.readdirSync(bucketPath)
-                .filter(file => !file.startsWith(".") && !file.startsWith("_"))
-                .filter(file => fs.statSync(path.join(bucketPath, file)).isDirectory());
+        
+        let pkgs: string[] = [];
+        if (type === "bucket") {
+            // Load packages from mods.json
+            try {
+                const modsJson = JSON.parse(fs.readFileSync(modsJsonPath, "utf8"));
+                if (Array.isArray(modsJson)) {
+                    // Handle both string entries and object entries with remote links
+                    pkgs = modsJson.map(entry => {
+                        if (typeof entry === 'string') {
+                            return entry;
+                        } else if (typeof entry === 'object' && entry !== null) {
+                            // Handle remote link format: { name: string, remote: string }
+                            if ('name' in entry && 'remote' in entry) {
+                                return entry.name;
+                            }
+                        }
+                        return null;
+                    }).filter((pkg): pkg is string => pkg !== null && pkg !== "node_modules");
+                } else {
+                    console.error(`Invalid mods.json format in ${folderName}: expected array`);
+                    return new ModBucket({
+                        type: "bucket",
+                        pkgs: [],
+                        folderName
+                    });
+                }
+            } catch (error) {
+                console.error(`Failed to parse mods.json in ${folderName}:`, error);
+                return new ModBucket({
+                    type: "bucket",
+                    pkgs: [],
+                    folderName
+                });
+            }
+        } else {
+            // For package type, just use the folder name
+            pkgs = [folderName];
+        }
 
         // Try to get git URL from .git/config
         let gitUrl: string | undefined;
@@ -159,12 +196,15 @@ class ModBucket {
             return only1 ? null : [];
         }
 
-        // For bucket type, search through all packages
+        // For bucket type, search through packages listed in mods.json
         for (const pkgName of this.pkgs) {
             if (pkgName === name || pkgName.includes(name)) {
                 try {
                     const pkgPath = path.join(POWER_EAGLE_BUCKETS_PATH, this.folderName, pkgName);
-                    if (!fs.existsSync(pkgPath)) continue;
+                    if (!fs.existsSync(pkgPath)) {
+                        console.warn(`Package ${pkgName} listed in mods.json but not found in bucket`);
+                        continue;
+                    }
 
                     // Check if it's a v1 mod (has .js files but no mod.json)
                     const hasJsFiles = fs.readdirSync(pkgPath).some(file => file.endsWith('.js'));
@@ -185,6 +225,8 @@ class ModBucket {
                         const pkg = ModPkg.loadPkg(pkgName);
                         if (only1) return pkg;
                         results.push(pkg);
+                    } else {
+                        console.warn(`Package ${pkgName} in mods.json is neither a v1 mod nor has mod.json`);
                     }
                 } catch (error) {
                     console.error(`Failed to load package ${pkgName}:`, error);
@@ -193,6 +235,35 @@ class ModBucket {
         }
 
         return only1 ? null : results;
+    }
+
+    getRemoteLink(pkgName: string): string | null {
+        if (this.type !== "bucket") return null;
+
+        try {
+            const modsJsonPath = path.join(POWER_EAGLE_BUCKETS_PATH, this.folderName, "mods.json");
+            if (!fs.existsSync(modsJsonPath)) return null;
+
+            const modsJson = JSON.parse(fs.readFileSync(modsJsonPath, "utf8"));
+            if (!Array.isArray(modsJson)) return null;
+
+            const entry = modsJson.find(entry => {
+                if (typeof entry === 'string') {
+                    return entry === pkgName;
+                } else if (typeof entry === 'object' && entry !== null) {
+                    return 'name' in entry && entry.name === pkgName;
+                }
+                return false;
+            });
+
+            if (entry && typeof entry === 'object' && 'remote' in entry) {
+                return entry.remote;
+            }
+            return null;
+        } catch (error) {
+            console.error(`Failed to get remote link for ${pkgName}:`, error);
+            return null;
+        }
     }
 }
 

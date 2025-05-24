@@ -1,8 +1,9 @@
 // Use existing modules if available, otherwise import them
+// On module load, shared dependencies will be installed automatically if shared.json exists.
 const path = (global as unknown as { path: typeof import("path") }).path || require("path");
 const os = (global as unknown as { os: typeof import("os") }).os || require("os");
 const fs = (global as unknown as { fs: typeof import("fs") }).fs || require("fs");
-const { spawn } = (global as unknown as { spawn: typeof import("child_process") }).spawn || require("child_process");
+const childProcess = (global as unknown as { childProcess: typeof import("child_process") }).childProcess || require("child_process");
 
 // implement a class of json object that automatically saves to a file
 class JsonFile<T> {
@@ -51,16 +52,39 @@ class JsonFile<T> {
 }
 
 export const POWER_EAGLE_PATH = path.join(os.homedir(), ".powereagle");
-
 export const POWER_EAGLE_PKGS_PATH = path.join(POWER_EAGLE_PATH, "pkgs");
-export const POWER_EAGLE_BUCKETS_PATH = path.join(POWER_EAGLE_PATH, "buckets");    
+export const POWER_EAGLE_BUCKETS_PATH = path.join(POWER_EAGLE_PATH, "buckets");
+export const POWER_EAGLE_SHARED_NODE_MODULES = path.join(POWER_EAGLE_PKGS_PATH, "node_modules");
 
-if (!fs.existsSync(POWER_EAGLE_PKGS_PATH)) {
-    fs.mkdirSync(POWER_EAGLE_PKGS_PATH, { recursive: true });
-}
+// Create required directories
+[POWER_EAGLE_PATH, POWER_EAGLE_PKGS_PATH, POWER_EAGLE_BUCKETS_PATH, POWER_EAGLE_SHARED_NODE_MODULES].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+});
 
-if (!fs.existsSync(POWER_EAGLE_BUCKETS_PATH)) {
-    fs.mkdirSync(POWER_EAGLE_BUCKETS_PATH, { recursive: true });
+// Core packages that should always be available
+const CORE_PACKAGES = [
+    "@eagle-cooler/utils",
+    "@eagle-cooler/util",
+    "canvas"
+] as const;
+
+/**
+ * Gets all shared dependencies from package.json
+ */
+export function getSharedDependencies(): { [key: string]: string } {
+    try {
+        const packageJsonPath = path.join(POWER_EAGLE_SHARED_NODE_MODULES, "package.json");
+        if (!fs.existsSync(packageJsonPath)) {
+            return {};
+        }
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+        return packageJson.dependencies || {};
+    } catch (error) {
+        console.error("[SharedDeps] Failed to read package.json:", error);
+        return {};
+    }
 }
 
 export const localLinksJson = new JsonFile<{
@@ -85,7 +109,7 @@ export function parseGitUrl(url: string): { user: string; repo: string } | null 
 
 export async function executeGitCommand(cwd: string, args: string[]): Promise<{ success: boolean; output: string }> {
     return new Promise((resolve) => {
-        const git = spawn("git", args, { cwd });
+        const git = childProcess.spawn("git", args, { cwd });
         let output = "";
         let error = "";
 
@@ -126,4 +150,113 @@ export async function isGitRepository(path: string): Promise<boolean> {
     const result = await executeGitCommand(path, ["status"]);
     return result.success;
 }
+
+// Helper function to update shared dependencies
+
+/**
+ * Compares two semantic version strings
+ * @returns positive if v1 > v2, negative if v1 < v2, 0 if equal
+ */
+export function compareVersions(v1: string, v2: string): number {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+        const num1 = parts1[i] || 0;
+        const num2 = parts2[i] || 0;
+        if (num1 !== num2) {
+            return num1 - num2;
+        }
+    }
+    return 0;
+}
+
+/**
+ * Gets the higher of two semantic versions
+ */
+export function getHigherVersion(v1: string, v2: string): string {
+    return compareVersions(v1, v2) > 0 ? v1 : v2;
+} 
+
+/**
+ * Updates shared dependencies in package.json
+ */
+export function updateSharedDependencies(pkgName: string, dependencies: { [key: string]: string }): void {
+    try {
+        const packageJsonPath = path.join(POWER_EAGLE_SHARED_NODE_MODULES, "package.json");
+        const packageJson = fs.existsSync(packageJsonPath)
+            ? JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+            : { dependencies: {} };
+
+        // Update dependencies with highest version
+        Object.entries(dependencies).forEach(([dep, version]) => {
+            if (!packageJson.dependencies[dep] || compareVersions(version, packageJson.dependencies[dep]) > 0) {
+                packageJson.dependencies[dep] = version;
+            }
+        });
+
+        // Ensure core packages are included
+        CORE_PACKAGES.forEach(pkg => {
+            if (!packageJson.dependencies[pkg]) {
+                packageJson.dependencies[pkg] = "*";
+            }
+        });
+
+        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    } catch (error) {
+        console.error("[SharedDeps] Failed to update package.json:", error);
+    }
+}
+
+/**
+ * Installs npm packages to the shared node_modules directory
+ */
+export async function installSharedDependencies(dependencies: { [key: string]: string }): Promise<boolean> {
+    try {
+        const packageJsonPath = path.join(POWER_EAGLE_SHARED_NODE_MODULES, "package.json");
+        
+        // Skip if node_modules is up to date
+        if (fs.existsSync(packageJsonPath)) {
+            const packageJsonMtime = fs.statSync(packageJsonPath).mtime.getTime();
+            const nodeModulesMtime = fs.statSync(POWER_EAGLE_SHARED_NODE_MODULES).mtime.getTime();
+            if (Math.abs(packageJsonMtime - nodeModulesMtime) < 300000) { // 5 minutes
+                return true;
+            }
+        }
+
+        // Get the appropriate shell based on OS
+        const shell = eagle.app.isWindows ? 'cmd.exe' : '/bin/sh';
+
+        // Install dependencies
+        for (const [pkg, version] of Object.entries(dependencies)) {
+            try {
+                const versionStr = version === '*' ? 'latest' : version;
+                childProcess.execSync(`npm install ${pkg}@${versionStr}`, {
+                    stdio: 'inherit',
+                    cwd: POWER_EAGLE_SHARED_NODE_MODULES,
+                    shell
+                });
+            } catch (error) {
+                console.error(`[SharedDeps] Failed to install ${pkg}@${version}:`, error);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error("[SharedDeps] Failed to install shared dependencies:", error);
+        return false;
+    }
+}
+
+// Initialize shared dependencies on module load
+(async () => {
+    try {
+        const deps = getSharedDependencies();
+        if (Object.keys(deps).length > 0) {
+            await installSharedDependencies(deps);
+        }
+    } catch (error) {
+        console.error("[SharedDeps] Failed to initialize shared dependencies:", error);
+    }
+})();
 
