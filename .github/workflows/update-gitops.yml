@@ -1,6 +1,11 @@
 name: Update Template Files
 
 on:
+  workflow_call:
+    secrets:
+      GH_TOKEN:
+        required: true
+        description: 'GitHub token for authentication'
   workflow_dispatch:
 
 jobs:
