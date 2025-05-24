@@ -67,18 +67,18 @@ jobs:
         cp manifest.json manifest.json.bak
         
         # Process production manifest
-        PROD_RESULT=$(node .github/scripts/process-manifest.js false)
+        PROD_RESULT=$(node .github/scripts/process-manifest.cjs false)
         PROD_TYPE=$(echo $PROD_RESULT | jq -r '.type')
-        PROD_ZIP=$(node .github/scripts/create-zip.js $PROD_TYPE)
+        PROD_ZIP=$(node .github/scripts/create-zip.cjs $PROD_TYPE)
         echo "PROD_ZIP=$PROD_ZIP" >> $GITHUB_ENV
         
         # Restore original manifest
         cp manifest.json.bak manifest.json
         
         # Process debug manifest
-        DEBUG_RESULT=$(node .github/scripts/process-manifest.js true)
+        DEBUG_RESULT=$(node .github/scripts/process-manifest.cjs true)
         DEBUG_TYPE=$(echo $DEBUG_RESULT | jq -r '.type')
-        DEBUG_ZIP=$(node .github/scripts/create-zip.js $DEBUG_TYPE)
+        DEBUG_ZIP=$(node .github/scripts/create-zip.cjs $DEBUG_TYPE)
         echo "DEBUG_ZIP=$DEBUG_ZIP" >> $GITHUB_ENV
         
         # Restore original manifest
