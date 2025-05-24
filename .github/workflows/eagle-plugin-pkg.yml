@@ -23,6 +23,44 @@ jobs:
       with:
         submodules: 'recursive'
 
+    - name: Check allowed branches
+      id: check_branches
+      run: |
+        # Read pkgRules.json
+        if [ -f ".github/configs/pkgRules.json" ]; then
+          # Check if branches field exists
+          if jq -e '.branches' .github/configs/pkgRules.json > /dev/null 2>&1; then
+            # Get current branch name
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+            # Get allowed branches from pkgRules.json
+            ALLOWED_BRANCHES=$(jq -r '.branches[]' .github/configs/pkgRules.json)
+            # Check if current branch matches any allowed pattern
+            ALLOWED=false
+            for pattern in $ALLOWED_BRANCHES; do
+              if [[ "$BRANCH_NAME" =~ ^${pattern//\*/.*}$ ]]; then
+                ALLOWED=true
+                break
+              fi
+            done
+            if [ "$ALLOWED" = false ]; then
+              echo "Branch $BRANCH_NAME is not in allowed branches list. Exiting."
+              exit 0
+            fi
+          else
+            # If no branches field, only allow main branch
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "No branches specified in pkgRules.json. Only main branch is allowed. Exiting."
+              exit 0
+            fi
+          fi
+        else
+          # If no pkgRules.json, only allow main branch
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "No pkgRules.json found. Only main branch is allowed. Exiting."
+            exit 0
+          fi
+        fi
+
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:

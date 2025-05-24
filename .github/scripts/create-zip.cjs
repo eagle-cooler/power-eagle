@@ -24,6 +24,13 @@ function matchPattern(pattern, filePath) {
 function findMatchingFiles(pattern, baseDir) {
   const matches = [];
   
+  // Check if pattern is a directory
+  const fullPatternPath = path.join(baseDir, pattern);
+  if (fs.existsSync(fullPatternPath) && fs.statSync(fullPatternPath).isDirectory()) {
+    matches.push(pattern);
+    return matches;
+  }
+  
   function scanDir(dir) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     
