@@ -1,0 +1,16 @@
+{
+  "id": "870e7d2e-a37a-4f67-997a-0b43f849217e",
+  "version": "1.0.0",
+  "platform": "all",
+  "arch": "all",
+  "name": "eagle-plugin-vite-react-ts",
+  "description": "Vite React TypeScript TailwindCss template for Eagle Plugin.",
+  "logo": "/dist/vite.svg",
+  "keywords": ["template"],
+  "devTools": false,
+  "main": {
+    "url": "dist/index.html",
+    "width": 768,
+    "height": 450
+  }
+}
