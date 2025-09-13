@@ -8,11 +8,16 @@ function App() {
   const [extensionManager, setExtensionManager] =
     useState<ExtensionManager | null>(null);
   const [downloadUrl, setDownloadUrl] = useState("");
+  
 
   useEffect(() => {
-    // Initialize the extension manager
-    const initializeExtensionManager = async () => {
+    // Initialize the extension manager and theme
+    const initializeApp = async () => {
       try {
+        // Get theme from Eagle
+        const isDark = await eagle.app.isDarkColors();
+        setMode(isDark ? "dark" : "light");
+
         const extManager = new ExtensionManager();
         setExtensionManager(extManager);
 
@@ -23,11 +28,13 @@ function App() {
 
         console.log("Extension manager initialized");
       } catch (error) {
-        console.error("Failed to initialize extension manager:", error);
+        console.error("Failed to initialize app:", error);
+        // Fallback to light theme if Eagle API fails
+        setMode("light");
       }
     };
 
-    initializeExtensionManager();
+    initializeApp();
   }, []);
 
   const handleDownloadExtension = async () => {
