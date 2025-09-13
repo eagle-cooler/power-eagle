@@ -2,13 +2,24 @@
 
 ![](./preview.png)
 
-# React + TypeScript + Vite + Eagle Plugin
+# Power Eagle - Meta Plugin System
 
-- vite
-- ts
-- react
-- tailwindcss
-- daisyui
+**Power Eagle** is a meta plugin system for Eagle.cool extensions that enables users to create, download, and manage custom userscript plugins. It provides a simple way to extend Eagle's functionality through URL-based plugin installation and rich UI components.
+
+## Features
+
+- 🔌 **Plugin Management**: Download and install plugins from URLs
+- 🎨 **Rich UI Support**: CardManager SDK for complex interfaces  
+- 🔒 **Isolated Execution**: Safe plugin contexts with prefixed storage
+- 📦 **System Integration**: Native zip extraction using OS APIs
+- 🎯 **Simple Development**: Just `plugin.json` + `main.js` files
+
+## Tech Stack
+
+- **Frontend**: React + TypeScript + Vite
+- **Styling**: TailwindCSS + DaisyUI
+- **Backend**: Eagle.cool Extension Framework
+- **File System**: Node.js fs/path modules
 
 ## Start
 
