@@ -1,7 +1,5 @@
 > for gitops workflows, refer to [template](https://github.com/eagle-cooler/template)
 
-![](./preview.png)
-
 # Power Eagle - Meta Plugin System
 
 **Power Eagle** is a meta plugin system for Eagle.cool extensions that enables users to create, download, and manage custom userscript plugins. It provides a simple way to extend Eagle's functionality through URL-based plugin installation and rich UI components.
