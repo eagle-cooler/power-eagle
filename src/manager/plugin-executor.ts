@@ -78,7 +78,8 @@ export class PluginExecutor {
     // Import SDK components
     const { CardManager } = await import('../sdk/card');
     const EagleApi = await import('../sdk/webapi');
-
+    const dialogModule = await import('../sdk/dialog');
+    const utils = await import('../sdk/utils');
     // Create clean context with only eagle and powersdk
     const context = {
       eagle: (window as any).eagle,
@@ -90,9 +91,13 @@ export class PluginExecutor {
         // SDK components
         CardManager,
         // Eagle API
-        webapi: EagleApi.default,
+        "webapi": EagleApi.default,
         // Plugin info
-        pluginId: extension.id
+        pluginId: extension.id,
+
+        "Dialog" : dialogModule.Dialog,
+
+        "utils" : utils
       }
     };
     
@@ -176,7 +181,6 @@ export class PluginExecutor {
       }
       
       this.debugLog(`Plugin execution completed for: ${extension.name}`);
-      this.debugLog(`Container content after execution:`, context.container.innerHTML);
       
     } catch (error) {
       this.debugLog(`Failed to execute plugin ${extension.name}:`, error);

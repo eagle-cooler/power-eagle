@@ -7,7 +7,7 @@
 ## Features
 
 - 🔌 **Plugin Management**: Download and install plugins from URLs
-- 🎨 **Rich UI Support**: CardManager SDK for complex interfaces  
+- 🎨 **Rich UI Support**: SDK for complex interfaces, see [examples](./src/examples/)
 - 🔒 **Isolated Execution**: Safe plugin contexts with prefixed storage
 - 📦 **System Integration**: Native zip extraction using OS APIs
 - 🎯 **Simple Development**: Just `plugin.json` + `main.js` files

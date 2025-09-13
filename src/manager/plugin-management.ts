@@ -50,12 +50,8 @@ export class PluginManagement {
    * @param folderPath - Path to the plugin folder to delete
    */
   private async deletePluginFolder(folderPath: string): Promise<void> {
-    // In a real implementation, this would delete the folder from the file system
-    // For now, we'll simulate the deletion
-    console.log(`Would delete folder: ${folderPath}`);
-    
-    // Simulate async file system operation
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const fs = require('fs').promises;
+    await fs.rmdir(folderPath, { recursive: true });
   }
 
   /**

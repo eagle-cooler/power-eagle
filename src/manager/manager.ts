@@ -22,18 +22,21 @@ export class ExtensionManager {
   }
 
   /**
-   * Scans for and discovers all available plugins
+   * Scans for and discovers all available plugins, excluding hidden ones
    * Delegates to PluginDiscovery component
    */
   async scanExtensions(): Promise<void> {
     try {
       const extensions = await this.discovery.discoverExtensions();
-      
-      for (const extension of extensions) {
+      const visibleExtensions = extensions.filter(
+        (extension) => !this.management.isPluginHidden(extension.id)
+      );
+
+      for (const extension of visibleExtensions) {
         this.extensions.set(extension.id, extension);
       }
-      
-      console.log(`Found ${extensions.length} extensions`);
+
+      console.log(`Found ${visibleExtensions.length} visible extensions`);
     } catch (error) {
       console.error('Failed to scan extensions:', error);
     }

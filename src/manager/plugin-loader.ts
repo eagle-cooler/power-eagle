@@ -83,7 +83,12 @@ export class PluginLoader {
           const plugin = ${examplePlugin.toString()};
           plugin(context);
         `;
-        
+      case 'file-creator':
+        const { plugin: fileCreatorPlugin } = await import('../examples/file-creator');
+        return `
+          const plugin = ${fileCreatorPlugin.toString()};
+          plugin(context);
+        `;
       default:
         throw new Error(`Unknown plugin: ${pluginId}`);
     }
@@ -133,7 +138,7 @@ export class PluginLoader {
    * @returns boolean - True if it's an example plugin
    */
   private isExamplePlugin(pluginId: string): boolean {
-    const examplePlugins = ['example-plugin', 'recent-libraries'];
+    const examplePlugins = ['example-plugin', 'recent-libraries', 'file-creator'];
     return examplePlugins.includes(pluginId);
   }
 

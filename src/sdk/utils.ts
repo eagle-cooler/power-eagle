@@ -205,3 +205,27 @@ export async function listZipContents(zipPath: string): Promise<string[]> {
     return [];
   }
 }
+
+
+// function to create a new file and add to eagle
+export async function createFile(fileName: string, extension : string, content: string | null = null, options: any = {}): Promise<boolean> {
+  const fs = require('fs');
+  const path = require('path');
+  var tempDir = await eagle.os.tmpdir();
+  var filePath = path.join(tempDir, `${fileName}.${extension}`);
+  // current folder
+  var currentDirs = await eagle.folder.getSelected();
+  if (currentDirs && currentDirs.length > 0) {
+    var currentDir = currentDirs[0];
+    options["folders"] = [currentDir.id];
+  }
+  try {
+    await fs.promises.writeFile(filePath, content || '');
+    options['name'] = `${fileName}.${extension}`;
+    await eagle.item.addFromPath(filePath, options);
+    return true;
+  } catch (error) {
+    console.error('Failed to create file in Eagle:', error);
+    return false;
+  }
+}

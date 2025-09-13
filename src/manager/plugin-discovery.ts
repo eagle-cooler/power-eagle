@@ -50,6 +50,14 @@ export class PluginDiscovery {
           name: 'Recent Libraries',
         },
       },
+      {
+        id: 'file-creator',
+        name: 'File Creator',
+        manifest: {
+          id: 'file-creator',
+          name: 'File Creator',
+        },
+      },
     ];
 
     // Add built-in plugins
@@ -179,15 +187,5 @@ export class PluginDiscovery {
       console.error(`Failed to download extension from ${url}:`, error);
       throw error;
     }
-  }
-
-  /**
-   * Checks if a plugin ID corresponds to a built-in example plugin
-   * @param pluginId - Plugin ID to check
-   * @returns boolean - True if it's an example plugin
-   */
-  isExamplePlugin(pluginId: string): boolean {
-    const examplePlugins = ['example-plugin', 'recent-libraries'];
-    return examplePlugins.includes(pluginId);
   }
 }
