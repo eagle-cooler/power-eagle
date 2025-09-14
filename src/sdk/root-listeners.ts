@@ -16,6 +16,7 @@ export class RootListeners extends BaseManager {
   private lastState: EagleStateChanges = {};
   private polling: boolean = false;
   private pollInterval: NodeJS.Timeout | null = null;
+  private enabledTypes: Set<EagleEventType> = new Set();
 
   constructor() {
     super('RootListeners');
@@ -29,14 +30,22 @@ export class RootListeners extends BaseManager {
   /**
    * Starts monitoring Eagle application state changes
    * @param intervalMs - Polling interval in milliseconds (default: 1000)
+   * @param enabledTypes - Array of event types to monitor (default: all types)
    */
-  async startPolling(intervalMs: number = 1000): Promise<void> {
+  async startPolling(intervalMs: number = 1000, enabledTypes?: EagleEventType[]): Promise<void> {
     if (this.polling) {
       this.debugLog('Already polling, stopping previous poll');
       this.stopPolling();
     }
 
-    this.debugLog(`Starting Eagle state polling with ${intervalMs}ms interval`);
+    // Set enabled types (default to all if not specified)
+    if (enabledTypes) {
+      this.enabledTypes = new Set(enabledTypes);
+    } else {
+      this.enabledTypes = new Set(['itemChange', 'libraryChange', 'folderChange']);
+    }
+
+    this.debugLog(`Starting Eagle state polling with ${intervalMs}ms interval for types: ${Array.from(this.enabledTypes).join(', ')}`);
     this.polling = true;
     
     // Initial state capture
@@ -57,7 +66,40 @@ export class RootListeners extends BaseManager {
       this.pollInterval = null;
     }
     this.polling = false;
+    this.enabledTypes.clear();
     this.debugLog('Stopped Eagle state polling');
+  }
+
+  /**
+   * Start monitoring only item selection changes
+   * @param intervalMs - Polling interval in milliseconds (default: 1000)
+   */
+  async startItemMonitoring(intervalMs: number = 1000): Promise<void> {
+    await this.startPolling(intervalMs, ['itemChange']);
+  }
+
+  /**
+   * Start monitoring only folder selection changes
+   * @param intervalMs - Polling interval in milliseconds (default: 1000)
+   */
+  async startFolderMonitoring(intervalMs: number = 1000): Promise<void> {
+    await this.startPolling(intervalMs, ['folderChange']);
+  }
+
+  /**
+   * Start monitoring only library changes
+   * @param intervalMs - Polling interval in milliseconds (default: 1000)
+   */
+  async startLibraryMonitoring(intervalMs: number = 1000): Promise<void> {
+    await this.startPolling(intervalMs, ['libraryChange']);
+  }
+
+  /**
+   * Start monitoring item and folder changes (most common use case)
+   * @param intervalMs - Polling interval in milliseconds (default: 1000)
+   */
+  async startSelectionMonitoring(intervalMs: number = 1000): Promise<void> {
+    await this.startPolling(intervalMs, ['itemChange', 'folderChange']);
   }
 
   /**
@@ -97,13 +139,20 @@ export class RootListeners extends BaseManager {
         return;
       }
 
-      this.lastState = {
-        itemChange: await this.getCurrentItem(),
-        libraryChange: await this.getCurrentLibrary(),
-        folderChange: await this.getCurrentFolder()
-      };
+      this.lastState = {};
 
-      this.debugLog('Captured current Eagle state');
+      // Only capture state for enabled types
+      if (this.enabledTypes.has('itemChange')) {
+        this.lastState.itemChange = await this.getCurrentItem();
+      }
+      if (this.enabledTypes.has('libraryChange')) {
+        this.lastState.libraryChange = await this.getCurrentLibrary();
+      }
+      if (this.enabledTypes.has('folderChange')) {
+        this.lastState.folderChange = await this.getCurrentFolder();
+      }
+
+      this.debugLog('Captured current Eagle state for enabled types:', Array.from(this.enabledTypes));
     } catch (error) {
       this.debugLog('Error capturing Eagle state:', error);
     }
@@ -119,28 +168,35 @@ export class RootListeners extends BaseManager {
         return;
       }
 
-      const currentState: EagleStateChanges = {
-        itemChange: await this.getCurrentItem(),
-        libraryChange: await this.getCurrentLibrary(),
-        folderChange: await this.getCurrentFolder()
-      };
+      const currentState: EagleStateChanges = {};
+
+      // Only check state for enabled types
+      if (this.enabledTypes.has('itemChange')) {
+        currentState.itemChange = await this.getCurrentItem();
+      }
+      if (this.enabledTypes.has('libraryChange')) {
+        currentState.libraryChange = await this.getCurrentLibrary();
+      }
+      if (this.enabledTypes.has('folderChange')) {
+        currentState.folderChange = await this.getCurrentFolder();
+      }
 
       // Check for item changes
-      if (!this.compareObjects(this.lastState.itemChange, currentState.itemChange)) {
+      if (this.enabledTypes.has('itemChange') && !this.compareObjects(this.lastState.itemChange, currentState.itemChange)) {
         this.debugLog('Item change detected');
         this.triggerCallbacks('itemChange', currentState.itemChange);
         this.lastState.itemChange = currentState.itemChange;
       }
 
       // Check for library changes
-      if (!this.compareObjects(this.lastState.libraryChange, currentState.libraryChange)) {
+      if (this.enabledTypes.has('libraryChange') && !this.compareObjects(this.lastState.libraryChange, currentState.libraryChange)) {
         this.debugLog('Library change detected');
         this.triggerCallbacks('libraryChange', currentState.libraryChange);
         this.lastState.libraryChange = currentState.libraryChange;
       }
 
       // Check for folder changes
-      if (!this.compareObjects(this.lastState.folderChange, currentState.folderChange)) {
+      if (this.enabledTypes.has('folderChange') && !this.compareObjects(this.lastState.folderChange, currentState.folderChange)) {
         this.debugLog('Folder change detected');
         this.triggerCallbacks('folderChange', currentState.folderChange);
         this.lastState.folderChange = currentState.folderChange;

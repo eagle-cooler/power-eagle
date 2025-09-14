@@ -18,6 +18,9 @@ export * from './common';
 // Constants
 export * from './constants';
 
+// Eagle-specific swap utilities
+export * from './op';
+
 // Legacy compatibility - re-export everything from the main interface
 export {
   debounce,

@@ -39,6 +39,7 @@ export async function createPowerSDKContext(
   const pathsModule = await import('./utils/paths');
   const domModule = await import('./utils/dom');
   const commonModule = await import('./utils/common');
+  const opModule = await import('./utils/op');
 
     return {
     // Storage functionality
@@ -92,6 +93,14 @@ export async function createPowerSDKContext(
         throttle: commonModule.throttle,
         generateId: commonModule.generateId,
         isValidUrl: commonModule.isValidUrl
+      },
+      
+      // Eagle-specific utilities
+      op: {
+        getFolderByName: opModule.getFolderByName,
+        swapFolderToTag: opModule.swapFolderToTag,
+        swapTagToFolder: opModule.swapTagToFolder,
+
       }
     },
     

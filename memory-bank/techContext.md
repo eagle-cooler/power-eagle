@@ -34,9 +34,27 @@
 - **Eagle API Client**: Custom `webapi.ts` for HTTP requests
 - **CardManager**: Custom UI component for rich layouts
 - **Utility Functions**: Custom utils for zip operations and helpers
+- **RootListeners**: Custom Eagle state monitoring with configurable event filtering
+- **Operation Utilities (op.ts)**: Custom Eagle folder/tag conversion utilities
 
 ### Browser Compatibility
 - **Modern Browsers**: Chrome, Firefox, Safari (Eagle's Electron environment)
 - **ES6+ Features**: Async/await, destructuring, modules
 - **DOM APIs**: Standard browser APIs for UI manipulation
 - **Storage**: LocalStorage with plugin-specific prefixes
+
+## Eagle Integration Utilities
+
+### State Monitoring (`root-listeners.ts`)
+- **Polling-Based**: Monitors Eagle application state changes via polling
+- **Event Types**: itemChange, folderChange, libraryChange with selective monitoring
+- **Change Detection**: Sorted array comparisons for consistent state tracking
+- **Performance Optimized**: Only monitor requested event types to reduce overhead
+- **Error Recovery**: Automatic cleanup of failed callbacks with callback statistics
+
+### Item Operations (`op.ts`)
+- **Folder Discovery**: `getFolderByName()` for finding folders by name
+- **Folder-to-Tag Conversion**: `swapFolderToTag()` for batch organizational changes
+- **Tag-to-Folder Conversion**: `swapTagToFolder()` with automatic folder creation
+- **Batch Processing**: Handle multiple selected items with individual error tracking
+- **Data Integrity**: Fresh item data retrieval and proper save operations

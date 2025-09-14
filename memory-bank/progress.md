@@ -42,7 +42,8 @@
 - ✅ **Error Handling**: Comprehensive try-catch with user notifications
 - ✅ **Code Cleanup**: Removed unused functions, fixed all syntax errors
 - ✅ **Python Integration**: Child process execution with Eagle Node.js API access
-- ✅ **Eagle State Polling**: Root listeners for real-time Eagle state monitoring
+- ✅ **Eagle State Polling**: Root listeners for real-time Eagle state monitoring with configurable event types
+- ✅ **Eagle Item Operations**: Batch folder-to-tag and tag-to-folder conversion utilities with error tracking
 - ✅ **Context Serialization**: Helper functions for Eagle data structure serialization
 
 ### Architecture Components
@@ -52,7 +53,8 @@
 - ✅ **PythonScriptRunner**: Python script execution with Eagle context integration
 - ✅ **PluginManagement**: Removal, hiding, cleanup
 - ✅ **PluginDownload**: Zip handling, validation, installation
-- ✅ **RootListeners**: Eagle application state monitoring with polling
+- ✅ **RootListeners**: Eagle application state monitoring with polling and configurable event type filtering
+- ✅ **Operation Utilities (op.ts)**: Eagle folder/tag conversion utilities for item organization workflows
 - ✅ **Serialization Utilities**: Eagle data structure serialization helpers
 
 ## What Works
@@ -65,7 +67,8 @@
 - Proper cleanup and isolation
 - Modular, maintainable architecture
 - Python script execution with Eagle context
-- Eagle state monitoring and event handling
+- Eagle state monitoring and event handling with configurable event types
+- Eagle folder/tag conversion operations with batch processing and error tracking
 - Conditional script execution based on manifest
 - Manual script execution controls
 - Python output display and error handling

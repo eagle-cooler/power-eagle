@@ -13,6 +13,8 @@
 - ✅ **Code Cleanup**: Removed unused functions and fixed all syntax errors
 - ✅ **Enhanced Plugin Examples**: All examples demonstrate organized import patterns
 - ✅ **Python Script Plugin Support**: New plugin type with Eagle state monitoring and context passing
+- ✅ **Eagle Item/Folder Operation Utilities**: New `op.ts` module with folder-to-tag and tag-to-folder swap operations
+- ✅ **Enhanced Root Listeners**: Improved Eagle state monitoring with targeted event types and better change detection
 
 ### Architecture Components
 - **PluginDiscovery**: Scans installed plugins, downloads from URLs
@@ -21,7 +23,8 @@
 - **PythonScriptRunner**: Executes Python scripts with Eagle context integration
 - **PluginManagement**: Handles plugin removal/hiding
 - **PluginDownload**: Downloads and validates zip files using system APIs
-- **RootListeners**: Eagle application state monitoring with polling-based change detection
+- **RootListeners**: Eagle application state monitoring with polling-based change detection and targeted event filtering
+- **Operation Utilities (op.ts)**: Eagle folder/tag conversion utilities for item organization workflows
 
 ### Plugin Types Supported
 1. **JavaScript Plugins** (`"type": "plugin"`): Traditional userscript plugins with SDK access
@@ -48,6 +51,8 @@
 - **createPowerSDKContext**: Centralized function for building organized powersdk object
 - **Isolation**: DOM containers, prefixed storage, tracked event listeners
 - **System APIs**: Native zip extraction (no external packages)
+- **Eagle State Monitoring**: Configurable event type filtering (itemChange, folderChange, libraryChange) with optimized polling
+- **Eagle Item Operations**: Batch folder-to-tag and tag-to-folder conversions with error handling and progress tracking
 - **Universal Interface**: All plugins follow same signature pattern
 - **Python Context**: Eagle data passed via `POWEREAGLE_CONTEXT` environment variable as JSON
 
