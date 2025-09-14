@@ -26,7 +26,24 @@ Every Power Eagle plugin follows this simple structure:
 ```javascript
 const plugin = async (context) => {
   const { eagle, powersdk } = context;
-  const { storage, container, CardManager, webapi, pluginId } = powersdk;
+  
+  // Access SDK features through organized namespaces
+  // Visual components
+  const dialog = new powersdk.visual.Dialog();
+  const cardManager = new powersdk.visual.CardManager(container);
+  const button = new powersdk.visual.Button(element, options);
+  
+  // Utility functions
+  const success = await powersdk.utils.files.createFile('example', 'txt', 'content');
+  const downloadPath = await powersdk.utils.paths.getDownloadPath();
+  await powersdk.utils.dom.copyToClipboard('text');
+  
+  // Storage and core functionality
+  powersdk.storage.set('key', 'value');
+  powersdk.container.innerHTML = '<div>Plugin UI</div>';
+  
+  // Eagle API
+  await powersdk.webapi.library.switch('/path/to/library');
   
   // Your plugin implementation here
 };
@@ -44,40 +61,45 @@ The `context` object provides access to both Eagle's native API and Power Eagle'
 
 ### Power SDK (`powersdk`)
 
-#### Storage (`storage`)
+#### Storage (`powersdk.storage`)
 Isolated localStorage with plugin-specific prefixes:
 
 ```javascript
 // Set data
-storage.set('key', 'value');
+powersdk.storage.set('key', 'value');
 
 // Get data
-const value = storage.get('key');
+const value = powersdk.storage.get('key');
 
 // Remove data
-storage.remove('key');
+powersdk.storage.remove('key');
 
 // Clear all plugin data
-storage.clear();
+powersdk.storage.clear();
 ```
 
-#### Container (`container`)
+#### Container (`powersdk.container`)
 Isolated DOM element for your plugin's UI:
 
 ```javascript
 // Append elements to your plugin's container
-container.appendChild(myElement);
+powersdk.container.appendChild(myElement);
 
 // Clear the container
-container.innerHTML = '';
+powersdk.container.innerHTML = '';
 ```
 
-#### CardManager (`CardManager`)
+#### Visual Components (`powersdk.visual`)
+
+##### CardManager (`powersdk.visual.CardManager`)
 Rich UI component for creating complex layouts:
 
 ```javascript
-// Create a card
-const card = CardManager.createCard({
+// Create card manager instance
+const cardManager = new powersdk.visual.CardManager(containerElement);
+
+// Add a card
+cardManager.addCardToContainer({
   id: 'my-card',
   title: 'Card Title',
   subtitle: 'Optional subtitle',
@@ -93,11 +115,113 @@ const card = CardManager.createCard({
   ]
 });
 
-// Add card to container
-container.appendChild(card);
+// Clear all cards
+cardManager.clearCards();
 
-// Update existing card
-CardManager.updateCard('my-card', {
+// Remove specific card
+cardManager.removeCard('my-card');
+```
+
+##### Dialog (`powersdk.visual.Dialog`)
+Modal dialog component for user input:
+
+```javascript
+const dialog = new powersdk.visual.Dialog();
+
+const elements = [
+  {
+    type: 'heading',
+    text: 'Enter Details'
+  },
+  {
+    type: 'input',
+    id: 'user-input',
+    inputType: 'text',
+    placeholder: 'Enter text here...',
+    class: 'input input-bordered'
+  }
+];
+
+dialog.open(
+  elements,
+  (data) => {
+    // Handle form submission
+    console.log('User input:', data['user-input']);
+  },
+  () => {
+    // Handle dialog close
+    console.log('Dialog closed');
+  }
+);
+```
+
+##### Button (`powersdk.visual.Button`)
+Enhanced button component:
+
+```javascript
+const button = new powersdk.visual.Button(buttonElement, {
+  onClick: () => console.log('Button clicked!'),
+  variant: 'primary'
+});
+```
+
+#### Utility Functions (`powersdk.utils`)
+
+##### File Operations (`powersdk.utils.files`)
+```javascript
+// Create a new file in Eagle
+const success = await powersdk.utils.files.createFile('filename', 'txt', 'content');
+
+// Extract zip files
+await powersdk.utils.files.extractZip('/path/to/file.zip', '/extract/to/');
+
+// Format file sizes
+const formatted = powersdk.utils.files.formatBytes(1024); // "1 KB"
+```
+
+##### Path Operations (`powersdk.utils.paths`)
+```javascript
+// Get system paths
+const homePath = await powersdk.utils.paths.getUserHomeDirectory();
+const downloadPath = await powersdk.utils.paths.getDownloadPath();
+const extensionsPath = await powersdk.utils.paths.getExtensionsPath();
+```
+
+##### DOM Operations (`powersdk.utils.dom`)
+```javascript
+// Create elements
+const element = powersdk.utils.dom.createElement('div', { class: 'my-class' });
+
+// Copy to clipboard
+await powersdk.utils.dom.copyToClipboard('text to copy');
+
+// Add stylesheets
+powersdk.utils.dom.addStylesheet('style-id', '.my-class { color: red; }');
+```
+
+##### Common Utilities (`powersdk.utils.common`)
+```javascript
+// Debounce and throttle
+const debouncedFn = powersdk.utils.common.debounce(() => console.log('Debounced!'), 300);
+const throttledFn = powersdk.utils.common.throttle(() => console.log('Throttled!'), 1000);
+
+// Generate unique IDs
+const id = powersdk.utils.common.generateId('prefix'); // "prefix-1234567890-abc123"
+
+// Validate URLs
+const isValid = powersdk.utils.common.isValidUrl('https://example.com'); // true
+```
+
+#### Eagle API (`powersdk.webapi`)
+Access to Eagle's HTTP API:
+
+```javascript
+// Switch libraries
+await powersdk.webapi.library.switch('/path/to/library');
+
+// Library operations
+const info = await powersdk.webapi.library.info();
+```
   title: 'Updated Title',
   status: 'warning'
 });

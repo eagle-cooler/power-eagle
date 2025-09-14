@@ -18,14 +18,44 @@ App.tsx → ExtensionManager → [PluginDiscovery, PluginLoader, PluginExecutor,
 const context = {
   eagle: window.eagle,           // Native Eagle API
   powersdk: {
+    // Core functionality
     storage: createPluginStorage(pluginId),    // Prefixed localStorage
     container: createPluginContainer(pluginId), // Isolated DOM element
-    CardManager,                               // UI component
-    webapi,                                   // Eagle HTTP API client
-    pluginId                                  // Plugin identifier
+    pluginId,                                  // Plugin identifier
+    
+    // Organized namespaces
+    visual: {
+      Button: class,              // Interactive button component
+      CardManager: class,         // Rich card UI component
+      Dialog: class              // Modal dialog component
+    },
+    
+    utils: {
+      files: { createFile, extractZip, listZipContents, formatBytes },
+      paths: { getUserHomeDirectory, getExtensionsPath, getDownloadPath, ... },
+      dom: { createElement, addStylesheet, waitForElement, copyToClipboard, ... },
+      common: { debounce, throttle, generateId, isValidUrl }
+    },
+    
+    webapi: EagleAPI             // Eagle HTTP API client
   }
 }
 ```
+
+### SDK Context Builder Pattern
+The `createPowerSDKContext()` function centralizes context creation:
+
+```typescript
+// In plugin-executor.ts
+const powersdk = await createPowerSDKContext(storage, container, pluginId);
+const context = { eagle, powersdk };
+```
+
+Benefits:
+- **Consistent Structure**: All plugins receive identical organized namespaces
+- **Lazy Loading**: Utils modules loaded dynamically when needed
+- **Type Safety**: TypeScript support throughout
+- **Discoverability**: Clear namespace hierarchy (`powersdk.visual.Button`, `powersdk.utils.files.createFile`)
 
 ### Isolation Strategy
 - **DOM**: Each plugin gets `plugin-container-{id}` element
@@ -38,8 +68,13 @@ const context = {
 // Universal signature for all plugins
 export const plugin = async (context: any) => {
   const { eagle, powersdk } = context;
-  const { storage, container, CardManager, webapi } = powersdk;
-  // Plugin implementation
+  
+  // Modern namespace usage (recommended)
+  const dialog = new powersdk.visual.Dialog();
+  const success = await powersdk.utils.files.createFile('example', 'txt', 'content');
+  powersdk.storage.set('key', 'value');
+  
+  // Plugin implementation using organized namespaces
 }
 ```
 

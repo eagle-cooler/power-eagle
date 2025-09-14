@@ -29,7 +29,6 @@ file-counter/
 // Counter Plugin Example for Power Eagle
 const plugin = async (context) => {
   const { eagle, powersdk } = context;
-  const { storage, container } = powersdk;
   
   console.log('Counter plugin loaded');
 
@@ -65,7 +64,7 @@ const plugin = async (context) => {
   `;
 
   // Append to the main container
-  container.appendChild(pluginContainer);
+  powersdk.container.appendChild(pluginContainer);
 
   // Get DOM elements
   const counterDisplay = pluginContainer.querySelector('#counter-display');
@@ -73,7 +72,7 @@ const plugin = async (context) => {
   const resetButton = pluginContainer.querySelector('#reset-button');
 
   // Load saved counter value
-  const savedCount = storage.get('counter') || '0';
+  const savedCount = powersdk.storage.get('counter') || '0';
   counterDisplay.textContent = savedCount;
 
   // Count button click handler
@@ -91,7 +90,7 @@ const plugin = async (context) => {
       counterDisplay.textContent = newCount.toString();
       
       // Save to storage
-      storage.set('counter', newCount.toString());
+      powersdk.storage.set('counter', newCount.toString());
       
       // Show success message using Eagle notification API
       await eagle.notification.show({
@@ -118,7 +117,7 @@ const plugin = async (context) => {
   // Reset button click handler
   resetButton.addEventListener('click', () => {
     counterDisplay.textContent = '0';
-    storage.set('counter', '0');
+    powersdk.storage.set('counter', '0');
   });
 };
 ```
@@ -128,10 +127,10 @@ const plugin = async (context) => {
 ### 1. Context Destructuring
 ```javascript
 const { eagle, powersdk } = context;
-const { storage, container } = powersdk;
 ```
 - Extract Eagle's native API and Power Eagle's SDK
-- Access isolated storage and DOM container
+- Access organized namespaces: `powersdk.visual`, `powersdk.utils`, `powersdk.storage`
+- Use namespace structure: `powersdk.storage.set()`, `powersdk.container.appendChild()`
 
 ### 2. UI Creation with TailwindCSS
 ```javascript
@@ -217,10 +216,12 @@ Instead of manually creating HTML, you can use the CardManager:
 ```javascript
 const plugin = async (context) => {
   const { eagle, powersdk } = context;
-  const { storage, container, CardManager } = powersdk;
 
-  // Create a card with actions
-  const card = CardManager.createCard({
+  // Create card manager instance
+  const cardManager = new powersdk.visual.CardManager(powersdk.container);
+
+  // Add a card with actions
+  cardManager.addCardToContainer({
     id: 'file-counter-card',
     title: 'File Counter',
     subtitle: 'Count selected files in Eagle',
@@ -240,7 +241,7 @@ const plugin = async (context) => {
         variant: 'primary',
         onClick: async () => {
           const selectedFiles = await eagle.item.getSelected();
-          const counterDisplay = container.querySelector('#counter-display');
+          const counterDisplay = powersdk.container.querySelector('#counter-display');
           counterDisplay.textContent = selectedFiles.length.toString();
           
           await eagle.notification.show({
@@ -254,15 +255,13 @@ const plugin = async (context) => {
         text: '🔄 Reset',
         variant: 'secondary',
         onClick: () => {
-          const counterDisplay = container.querySelector('#counter-display');
+          const counterDisplay = powersdk.container.querySelector('#counter-display');
           counterDisplay.textContent = '0';
-          storage.set('counter', '0');
+          powersdk.storage.set('counter', '0');
         }
       }
     ]
   });
-
-  container.appendChild(card);
 };
 ```
 
@@ -271,11 +270,10 @@ const plugin = async (context) => {
 ```javascript
 const plugin = async (context) => {
   const { eagle, powersdk } = context;
-  const { storage, container, webapi } = powersdk;
 
   try {
     // Get library information
-    const libraryInfo = await webapi.library.info();
+    const libraryInfo = await powersdk.webapi.library.info();
     
     // List recent items
     const recentItems = await webapi.item.list({ 
