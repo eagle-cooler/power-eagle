@@ -105,8 +105,9 @@ export class PluginDiscovery {
       // Read the extensions directory
       const entries = fs.readdirSync(extensionsDir, { withFileTypes: true });
       
-      // Filter for directories only
-      const pluginDirs = entries.filter((entry: { isDirectory: () => any; }) => entry.isDirectory());
+      // Filter for directories and symbolic links (to support symlinked plugins)
+      const pluginDirs = entries.filter((entry: { isDirectory: () => any; isSymbolicLink: () => any; }) => 
+        entry.isDirectory() || entry.isSymbolicLink());
       
       for (const pluginDir of pluginDirs) {
         try {

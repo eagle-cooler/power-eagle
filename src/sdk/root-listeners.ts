@@ -168,7 +168,8 @@ export class RootListeners extends BaseManager {
       const selectedItems = await eagle.item.getSelected();
       const itemsIds = selectedItems ? selectedItems.map((i: any) => i.id) : [];
       
-      return itemsIds;
+      // Sort the array to ensure consistent ordering for comparison
+      return itemsIds.sort();
     } catch (error) {
       this.debugLog('Error getting current item:', error);
       return null;
@@ -206,7 +207,9 @@ export class RootListeners extends BaseManager {
       const selectedFolders = await eagle.folder.getSelected();
       //this.debugLog('Current selected folders:', selectedFolders);
       const foldersIDs = selectedFolders ? selectedFolders.map((f: any) => f.id) : [];
-      return foldersIDs;
+      
+      // Sort the array to ensure consistent ordering for comparison
+      return foldersIDs.sort();
     } catch (error) {
       this.debugLog('Error getting current folder:', error);
       return null;
@@ -265,8 +268,11 @@ export class RootListeners extends BaseManager {
     if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
     if (Array.isArray(obj1)) {
       if (obj1.length !== obj2.length) return false;
+      
+      // Since we now sort arrays in getCurrentItem and getCurrentFolder,
+      // we can do a simple element-by-element comparison
       for (let i = 0; i < obj1.length; i++) {
-        if (!this.compareObjects(obj1[i], obj2[i])) return false;
+        if (obj1[i] !== obj2[i]) return false;
       }
       return true;
     }
