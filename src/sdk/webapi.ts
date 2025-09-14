@@ -108,11 +108,12 @@ interface ItemAddFromURLsParams {
 class EagleApi {
   private static token: string | null = null;
 
+
   /**
    * Gets the API token from Eagle application
    * @returns Promise<string | null> - API token or null if not available
    */
-  private static async _internalGetToken(): Promise<string | null> {
+  public static async _internalGetToken(): Promise<string | null> {
     if (EagleApi.token) {
       return EagleApi.token;
     }

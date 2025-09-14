@@ -18,7 +18,21 @@ Every Power Eagle plugin follows this simple structure:
 {
   "id": "my-plugin",
   "name": "My Plugin",
-  "description": "A brief description of what this plugin does"
+  "description": "A brief description of what this plugin does",
+  "type": "standard"
+}
+```
+
+For Python script plugins:
+
+```json
+{
+  "id": "my-python-plugin",
+  "name": "My Python Plugin", 
+  "description": "A Python script that responds to Eagle events",
+  "type": "python-script",
+  "on": ["itemChange", "libraryChange"],
+  "pythonEnv": "/path/to/python"
 }
 ```
 

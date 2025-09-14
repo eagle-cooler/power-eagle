@@ -3,7 +3,8 @@
 import { ExtensionInfo } from '../sdk/types';
 import { PluginDiscovery } from './plugin-discovery';
 import { PluginLoader } from './plugin-loader';
-import { PluginExecutor } from './js-runner';
+import { PluginExecutor } from './std-runner';
+import { PythonScriptRunner } from './pyscript-runner';
 import { PluginManagement } from './plugin-management';
 
 export class ExtensionManager {
@@ -11,6 +12,7 @@ export class ExtensionManager {
   private discovery: PluginDiscovery;
   private loader: PluginLoader;
   private executor: PluginExecutor;
+  private pythonRunner: PythonScriptRunner;
   private management: PluginManagement;
 
 
@@ -18,6 +20,7 @@ export class ExtensionManager {
     this.discovery = new PluginDiscovery();
     this.loader = new PluginLoader();
     this.executor = new PluginExecutor();
+    this.pythonRunner = new PythonScriptRunner();
     this.management = new PluginManagement();
   }
 
@@ -67,8 +70,12 @@ export class ExtensionManager {
       throw new Error(`Extension ${extensionId} not found`);
     }
 
-    // Clear all existing content
-    this.executor.clearHomeContent();
+    // Clear all existing content based on plugin type
+    if (extension.type === 'python-script') {
+      this.pythonRunner.clearHomeContent();
+    } else {
+      this.executor.clearHomeContent();
+    }
     
     // Navigate to plugin page with isolated context
     const pluginUrl = `plugin://${extensionId}`;
@@ -91,19 +98,39 @@ export class ExtensionManager {
 
   /**
    * Loads and executes a plugin in the current context
-   * Coordinates PluginLoader and PluginExecutor components
+   * Coordinates PluginLoader and appropriate runner based on plugin type
    * @param extension - Extension info for the plugin
    */
   private async loadPluginInCurrentContext(extension: ExtensionInfo): Promise<void> {
     try {
-      // Create isolated context for this plugin
-      const isolatedContext = await this.executor.createIsolatedContext(extension);
-      
-      // Load plugin code
-      const pluginCode = await this.loader.getPluginCode(extension);
-      
-      // Execute plugin in isolated context
-      await this.executor.executePluginInIsolation(extension, isolatedContext, pluginCode);
+      if (extension.type === 'python-script') {
+        // Handle Python script plugins
+        console.log(`Loading Python script plugin: ${extension.name}`);
+        
+        // Create isolated context for Python script
+        const isolatedContext = await this.pythonRunner.createIsolatedContext(extension);
+        
+        // Get the Python script path
+        const scriptPath = extension.isBuiltin 
+          ? `${extension.path}/main.py`  // For built-in examples
+          : `${extension.path}/main.py`; // For installed plugins
+        
+        // Execute Python script
+        await this.pythonRunner.executePythonScript(extension, isolatedContext, scriptPath);
+        
+      } else {
+        // Handle standard JavaScript/TypeScript plugins
+        console.log(`Loading standard plugin: ${extension.name}`);
+        
+        // Create isolated context for this plugin
+        const isolatedContext = await this.executor.createIsolatedContext(extension);
+        
+        // Load plugin code
+        const pluginCode = await this.loader.getPluginCode(extension);
+        
+        // Execute plugin in isolated context
+        await this.executor.executePluginInIsolation(extension, isolatedContext, pluginCode);
+      }
       
       console.log(`Plugin loaded in isolated context: ${extension.name}`);
     } catch (error) {

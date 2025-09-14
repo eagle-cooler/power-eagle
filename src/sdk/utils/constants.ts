@@ -29,4 +29,21 @@ export const STORAGE_KEYS = {
 /**
  * Plugin types
  */
+export const PLUGIN_TYPES = {
+  STANDARD: 'standard',
+  REACT: 'react',
+  VUE: 'vue',
+  ANGULAR: 'angular',
+  CUSTOM: 'custom'
+} as const;
+
+/**
+ * Default plugin type
+ */
+export const DEFAULT_PLUGIN_TYPE = PLUGIN_TYPES.STANDARD;
+
+/**
+ * Plugin types
+ */
 export type BuiltInPlugin = typeof BUILT_IN_PLUGINS[number];
+export type PluginType = typeof PLUGIN_TYPES[keyof typeof PLUGIN_TYPES];

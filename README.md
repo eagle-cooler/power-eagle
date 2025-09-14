@@ -12,10 +12,19 @@
 - 📦 **System Integration**: Native zip extraction using OS APIs
 - 🎯 **Simple Development**: Just `plugin.json` + `main.js` files
 - 🏗️ **Organized SDK**: Structured namespaces (`powersdk.visual`, `powersdk.utils`, `powersdk.storage`)
+- 🐍 **Python Script Support**: Execute Python scripts with Eagle context integration
+
+## Plugin Types
+
+### 1. JavaScript Plugins (`"type": "plugin"`)
+Traditional userscript plugins with full SDK access and isolated execution contexts.
+
+### 2. Python Scripts (`"type": "python-script"`)
+Python scripts that receive Eagle context via environment variables and can interact with Eagle state.
 
 ## Quick Start
 
-### Basic Plugin Structure
+### JavaScript Plugin Structure
 
 ```
 my-plugin/
@@ -23,7 +32,15 @@ my-plugin/
 └── main.js             # Plugin implementation
 ```
 
-### Plugin Example
+### Python Script Structure
+
+```
+my-python-plugin/
+├── plugin.json          # Plugin manifest
+└── main.py             # Python script
+```
+
+### JavaScript Plugin Example
 
 ```javascript
 // main.js
@@ -53,15 +70,54 @@ const plugin = async (context) => {
 };
 ```
 
-### Plugin Manifest
+### Python Script Example
 
+```python
+# main.py
+import os
+import json
+
+# Get Eagle context from environment variable
+context_json = os.environ.get('POWEREAGLE_CONTEXT', '{}')
+context = json.loads(context_json)
+
+# Access Eagle data
+selected_folders = context.get('folders', [])
+selected_items = context.get('items', [])
+library_info = context.get('info', {})
+
+print(f"Library: {library_info.get('name', 'Unknown')}")
+print(f"Selected folders: {len(selected_folders)}")
+print(f"Selected items: {len(selected_items)}")
+
+for folder in selected_folders:
+    print(f"Folder: {folder['name']} (ID: {folder['id']})")
+```
+
+### Plugin Manifests
+
+#### JavaScript Plugin
 ```json
 {
   "id": "my-plugin",
   "name": "My Plugin",
-  "description": "A helpful description of what this plugin does"
+  "description": "A helpful description of what this plugin does",
+  "type": "plugin"
 }
 ```
+
+#### Python Script Plugin
+```json
+{
+  "id": "my-python-script",
+  "name": "My Python Script",
+  "description": "A Python script that processes Eagle data",
+  "type": "python-script",
+  "on": ["onStart"]
+}
+```
+
+> **Note**: Python scripts with `"on": ["onStart"]` auto-execute when the plugin loads. Scripts without this will show manual Execute/Clear controls.
 
 ## SDK Reference
 

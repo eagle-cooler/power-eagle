@@ -77,7 +77,8 @@ export class PluginExecutor extends BaseManager {
       powersdk: await createPowerSDKContext(
         this.createPluginStorage(extension.id),
         this.createPluginContainer(extension.id),
-        extension.id
+        extension.id,
+        extension.manifest
       )
     };
     

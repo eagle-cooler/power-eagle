@@ -1,6 +1,7 @@
 // Power Eagle SDK - Main exports and context builder
 
 import { Button, CardManager, Dialog } from './visual';
+import { rootListeners } from './root-listeners';
 
 export { Button, ButtonManager } from './visual/button';
 export { CardManager } from './visual/card';
@@ -12,17 +13,23 @@ export * from './utils';
 // WebAPI export
 export { default as webapi } from './webapi';
 
+// Root listeners export
+export { rootListeners } from './root-listeners';
+export type { EagleEventType, EagleEventCallback, EagleStateChanges } from './root-listeners';
+
 /**
  * Creates the organized powersdk context for plugins
  * @param storage - Plugin storage object
  * @param container - Plugin DOM container
  * @param pluginId - Plugin identifier
+ * @param manifest - Full plugin manifest with type-specific options
  * @returns Organized powersdk context object
  */
 export async function createPowerSDKContext(
   storage: any,
   container: HTMLElement,
-  pluginId: string
+  pluginId: string,
+  manifest?: any
 ) {
   // Import all SDK components
   const EagleApi = await import('./webapi');
@@ -33,13 +40,15 @@ export async function createPowerSDKContext(
   const domModule = await import('./utils/dom');
   const commonModule = await import('./utils/common');
 
-  return {
+    return {
     // Storage functionality
     storage,
     // DOM container
     container,
     // Plugin info
     pluginId,
+    // Plugin manifest with type-specific options
+    manifest,
     
     // Organized namespaces
     visual: {
@@ -87,6 +96,9 @@ export async function createPowerSDKContext(
     },
     
     // Eagle API
-    webapi: EagleApi.default
+    webapi: EagleApi.default,
+    
+    // Root event listeners for Eagle state changes
+    listeners: rootListeners
   };
 }

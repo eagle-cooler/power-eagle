@@ -2,7 +2,7 @@
 
 import { ExtensionInfo } from '../sdk/types';
 import { getExtensionsPath } from '../sdk/utils/paths';
-import { BUILT_IN_PLUGINS } from '../sdk/utils/constants';
+import { BUILT_IN_PLUGINS, DEFAULT_PLUGIN_TYPE } from '../sdk/utils/constants';
 
 // Use require for Node.js modules in Eagle environment
 const fs = require('fs');
@@ -56,10 +56,12 @@ export class PluginDiscovery {
       id: pluginId,
       name: this.getPluginDisplayName(pluginId),
       description: this.getPluginDescription(pluginId),
+      type: 'standard', // Built-in plugins are standard type
       manifest: {
         id: pluginId,
         name: this.getPluginDisplayName(pluginId),
         description: this.getPluginDescription(pluginId),
+        type: 'standard',
       },
     }));
 
@@ -127,6 +129,7 @@ export class PluginDiscovery {
               id: manifest.id,
               name: manifest.name,
               description: manifest.description,
+              type: manifest.type || 'standard', // Default to standard if no type specified
               path: pluginPath,
               manifest,
               isBuiltin: false,
@@ -166,11 +169,13 @@ export class PluginDiscovery {
         id: 'downloaded-plugin',
         name: 'Downloaded Plugin',
         description: 'A plugin downloaded from a remote URL',
+        type: 'standard',
         path: `${extensionsDir}/downloaded-plugin`,
         manifest: {
           id: 'downloaded-plugin',
           name: 'Downloaded Plugin',
           description: 'A plugin downloaded from a remote URL',
+          type: 'standard',
         },
         isBuiltin: false,
       };
