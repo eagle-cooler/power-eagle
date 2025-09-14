@@ -1,19 +1,12 @@
 // Plugin code loading functionality
 
 import { ExtensionInfo } from '../sdk/types';
+import { BaseManager } from '../sdk/utils/logging';
+import { BUILT_IN_PLUGINS } from '../sdk/utils/constants';
 
-export class PluginLoader {
-  private debugMode: boolean = true;
-
-  /**
-   * Logs debug messages when debug mode is enabled
-   * @param message - Debug message to log
-   * @param args - Additional arguments to log
-   */
-  private debugLog(message: string, ...args: any[]): void {
-    if (this.debugMode) {
-      console.log(`[PluginLoader DEBUG] ${message}`, ...args);
-    }
+export class PluginLoader extends BaseManager {
+  constructor() {
+    super('PluginLoader');
   }
 
   /**
@@ -138,8 +131,7 @@ export class PluginLoader {
    * @returns boolean - True if it's an example plugin
    */
   private isExamplePlugin(pluginId: string): boolean {
-    const examplePlugins = ['example-plugin', 'recent-libraries', 'file-creator'];
-    return examplePlugins.includes(pluginId);
+    return BUILT_IN_PLUGINS.includes(pluginId as any);
   }
 
   /**

@@ -1,12 +1,11 @@
 // Basic Example Plugin for Power Eagle - SDK Demonstrations
 export const plugin = async (context: any) => {
   const { eagle, powersdk } = context;
-  const { storage, container, CardManager } = powersdk;
   
   console.log('Basic plugin loaded - SDK Demonstrations');
 
   // Create the plugin interface
-  container.innerHTML = `
+  powersdk.container.innerHTML = `
     <div class="basic-demo-container max-w-6xl mx-auto p-6">
       <div class="header mb-6">
         <h1 class="text-3xl font-bold mb-2">Power Eagle SDK Demo</h1>
@@ -51,6 +50,17 @@ export const plugin = async (context: any) => {
           <div id="storage-display" class="text-sm text-gray-600"></div>
         </div>
       </div>
+
+      <!-- Button Component Demo -->
+      <div class="card bg-base-100 shadow-xl mt-6">
+        <div class="card-body">
+          <h2 class="card-title mb-4">Button Component Demo</h2>
+          <p class="mb-4">Demonstrate the new Button class functionality</p>
+          <div id="button-demo-container" class="flex gap-2 flex-wrap">
+            <!-- Buttons will be added here programmatically -->
+          </div>
+        </div>
+      </div>
       
       <!-- Card Results -->
       <div class="mt-6">
@@ -63,11 +73,11 @@ export const plugin = async (context: any) => {
   `;
 
   // Initialize card manager
-  const resultsContainer = container.querySelector('#demo-results');
-  const cardManager = new CardManager(resultsContainer);
+  const resultsContainer = powersdk.container.querySelector('#demo-results');
+  const cardManager = new powersdk.visual.CardManager(resultsContainer);
 
   // Eagle API Demo
-  const eagleDemoBtn = container.querySelector('#eagle-demo-button');
+  const eagleDemoBtn = powersdk.container.querySelector('#eagle-demo-button');
   eagleDemoBtn?.addEventListener('click', async () => {
     await eagle.notification.show({
       title: 'Eagle API Working!',
@@ -76,8 +86,8 @@ export const plugin = async (context: any) => {
   });
 
   // CardManager Demo
-  const addSampleBtn = container.querySelector('#add-sample-card');
-  const clearBtn = container.querySelector('#clear-cards');
+  const addSampleBtn = powersdk.container.querySelector('#add-sample-card');
+  const clearBtn = powersdk.container.querySelector('#clear-cards');
 
   addSampleBtn?.addEventListener('click', () => {
     const cardId = `sample-${Date.now()}`;
@@ -117,17 +127,17 @@ export const plugin = async (context: any) => {
   });
 
   // Storage Demo
-  const saveBtn = container.querySelector('#save-storage');
-  const loadBtn = container.querySelector('#load-storage');
-  const keyInput = container.querySelector('#storage-key') as HTMLInputElement;
-  const valueInput = container.querySelector('#storage-value') as HTMLInputElement;
-  const storageDisplay = container.querySelector('#storage-display');
+  const saveBtn = powersdk.container.querySelector('#save-storage');
+  const loadBtn = powersdk.container.querySelector('#load-storage');
+  const keyInput = powersdk.container.querySelector('#storage-key') as HTMLInputElement;
+  const valueInput = powersdk.container.querySelector('#storage-value') as HTMLInputElement;
+  const storageDisplay = powersdk.container.querySelector('#storage-display');
 
   saveBtn?.addEventListener('click', () => {
     const key = keyInput?.value;
     const value = valueInput?.value;
     if (key && value) {
-      storage.set(key, value);
+      powersdk.storage.set(key, value);
       eagle.notification.show({
         title: 'Storage Saved',
         description: `Saved "${key}" = "${value}"`
@@ -140,7 +150,7 @@ export const plugin = async (context: any) => {
   loadBtn?.addEventListener('click', () => {
     const key = keyInput?.value;
     if (key) {
-      const value = storage.get(key);
+      const value = powersdk.storage.get(key);
       if (value !== null) {
         storageDisplay!.textContent = `"${key}" = "${value}"`;
         valueInput!.value = value;
@@ -149,4 +159,66 @@ export const plugin = async (context: any) => {
       }
     }
   });
+
+  // Button Component Demo
+  const buttonContainer = powersdk.container.querySelector('#button-demo-container');
+  
+  // Create various button examples
+  const primaryButton = new powersdk.visual.Button({
+    text: 'Primary Button',
+    variant: 'primary',
+    onClick: () => {
+      eagle.notification.show({
+        title: 'Primary Button',
+        description: 'You clicked the primary button!'
+      });
+    }
+  });
+
+  const secondaryButton = new powersdk.visual.Button({
+    text: 'Secondary',
+    variant: 'secondary',
+    size: 'sm',
+    onClick: () => {
+      eagle.notification.show({
+        title: 'Secondary Button',
+        description: 'Small secondary button clicked!'
+      });
+    }
+  });
+
+  const successButton = new powersdk.visual.Button({
+    text: 'Success',
+    variant: 'success',
+    onClick: () => {
+      eagle.notification.show({
+        title: 'Success!',
+        description: 'This is a success notification'
+      });
+    }
+  });
+
+  const toggleButton = new powersdk.visual.Button({
+    text: 'Enable Feature',
+    variant: 'warning',
+    onClick: () => {
+      const currentText = toggleButton.getElement().textContent;
+      const isEnabled = currentText === 'Disable Feature';
+      toggleButton.setText(isEnabled ? 'Enable Feature' : 'Disable Feature');
+      toggleButton.setVariant(isEnabled ? 'warning' : 'error');
+      
+      eagle.notification.show({
+        title: isEnabled ? 'Feature Disabled' : 'Feature Enabled',
+        description: `Feature is now ${isEnabled ? 'disabled' : 'enabled'}`
+      });
+    }
+  });
+
+  // Add buttons to container
+  if (buttonContainer) {
+    buttonContainer.appendChild(primaryButton.getElement());
+    buttonContainer.appendChild(secondaryButton.getElement());
+    buttonContainer.appendChild(successButton.getElement());
+    buttonContainer.appendChild(toggleButton.getElement());
+  }
 };

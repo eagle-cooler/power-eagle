@@ -13,7 +13,7 @@ export interface ExtensionInfo {
   isBuiltin: boolean;
 }
 
-export interface ButtonConfig {
+export interface LegacyButtonConfig {
   id: string;
   text: string;
   onClick: () => void;
@@ -24,5 +24,5 @@ export interface EagleAPI {
 }
 
 export interface PluginAPI {
-  registerButton: (config: ButtonConfig) => void;
+  registerButton: (config: LegacyButtonConfig) => void;
 }

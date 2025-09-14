@@ -1,7 +1,7 @@
 // Plugin management utilities for Power Eagle SDK
 
 import { PluginManifest, PluginAPI, EagleAPI } from './types';
-import { ButtonManager } from './button';
+import { ButtonManager } from './visual/button';
 
 export class PluginManager {
   private plugins: Map<string, PluginManifest> = new Map();

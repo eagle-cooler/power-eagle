@@ -1,27 +1,32 @@
 // Plugin discovery and scanning functionality
 
 import { ExtensionInfo } from '../sdk/types';
+import { getExtensionsPath } from '../sdk/utils/paths';
+import { BUILT_IN_PLUGINS } from '../sdk/utils/constants';
 
 // Use require for Node.js modules in Eagle environment
 const fs = require('fs');
 const path = require('path');
 
 export class PluginDiscovery {
-  private extensionsPath: string;
+  private extensionsPath: Promise<string>;
 
   constructor() {
-    this.extensionsPath = this.getExtensionsPath();
+    this.extensionsPath = getExtensionsPath();
   }
 
   /**
-   * Gets the user's extensions directory path
-   * @returns string - Path to ~user/.powereagle/extensions
+   * Gets display name for a plugin ID
+   * @param pluginId - Plugin ID
+   * @returns string - Display name
    */
-  private getExtensionsPath(): string {
-    // Get user's home directory and construct extensions path
-    const homeDir = typeof window !== 'undefined' && (window as any).eagle?.os?.homedir ? 
-      (window as any).eagle.os.homedir() : '~';
-    return `${homeDir}/.powereagle/extensions`;
+  private getPluginDisplayName(pluginId: string): string {
+    const nameMap: Record<string, string> = {
+      'example-plugin': 'Example Plugin',
+      'recent-libraries': 'Recent Libraries',
+      'file-creator': 'File Creator'
+    };
+    return nameMap[pluginId] || pluginId;
   }
 
   /**
@@ -32,33 +37,15 @@ export class PluginDiscovery {
     // Discover built-in example plugins and installed extensions
     const extensions: ExtensionInfo[] = [];
     
-    // Add built-in example plugins
-    const examplePlugins = [
-      {
-        id: 'example-plugin',
-        name: 'Example Plugin',
-        manifest: {
-          id: 'example-plugin',
-          name: 'Example Plugin',
-        },
+    // Add built-in example plugins using constants
+    const examplePlugins = BUILT_IN_PLUGINS.map(pluginId => ({
+      id: pluginId,
+      name: this.getPluginDisplayName(pluginId),
+      manifest: {
+        id: pluginId,
+        name: this.getPluginDisplayName(pluginId),
       },
-      {
-        id: 'recent-libraries',
-        name: 'Recent Libraries',
-        manifest: {
-          id: 'recent-libraries',
-          name: 'Recent Libraries',
-        },
-      },
-      {
-        id: 'file-creator',
-        name: 'File Creator',
-        manifest: {
-          id: 'file-creator',
-          name: 'File Creator',
-        },
-      },
-    ];
+    }));
 
     // Add built-in plugins
     for (const plugin of examplePlugins) {
@@ -88,8 +75,8 @@ export class PluginDiscovery {
     const installedPlugins: ExtensionInfo[] = [];
     
     try {
-      // Get the actual extensions directory path
-      const extensionsDir = this.getActualExtensionsPath();
+      // Get the extensions directory path
+      const extensionsDir = await this.extensionsPath;
       
       // Check if extensions directory exists
       if (!fs.existsSync(extensionsDir)) {
@@ -144,19 +131,6 @@ export class PluginDiscovery {
   }
 
   /**
-   * Gets the actual file system path for the extensions directory
-   * @returns string - Actual path to extensions directory
-   */
-  private getActualExtensionsPath(): string {
-    // Get user's home directory
-    const homeDir = typeof window !== 'undefined' && (window as any).eagle?.os?.homedir ? 
-      (window as any).eagle.os.homedir() : 
-      process.env.HOME || process.env.USERPROFILE || '~';
-    
-    return path.join(homeDir, '.powereagle', 'extensions');
-  }
-
-  /**
    * Downloads a plugin from a URL (currently mocked)
    * @param url - URL to download the plugin from
    * @returns Promise<ExtensionInfo> - Downloaded plugin information
@@ -170,10 +144,11 @@ export class PluginDiscovery {
       console.log(`Downloading extension from: ${url}`);
       
       // Mock download - in reality you'd fetch and save files
+      const extensionsDir = await this.extensionsPath;
       const mockExtension: ExtensionInfo = {
         id: 'downloaded-plugin',
         name: 'Downloaded Plugin',
-        path: `${this.extensionsPath}/downloaded-plugin`,
+        path: `${extensionsDir}/downloaded-plugin`,
         manifest: {
           id: 'downloaded-plugin',
           name: 'Downloaded Plugin',

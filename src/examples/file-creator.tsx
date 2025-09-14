@@ -1,7 +1,5 @@
 export const plugin = async (context: any) => {
   const { powersdk } = context;
-  const { container, CardManager, Dialog, utils } = powersdk;
-  const { createFile } = utils;
   console.log('File Creator plugin loaded');
 
   // Plugin state
@@ -13,19 +11,19 @@ export const plugin = async (context: any) => {
 
   // Main functions
   async function initializeUI() {
-    // Load extensions from localStorage
+    // Load extensions from storage
     extensions = loadExtensions();
 
     // Create the plugin interface
-    if (!container) {
+    if (!powersdk.container) {
       console.error('Plugin container is undefined. Cannot initialize UI.');
       return;
     }
 
-    console.log('Container state before accessing innerHTML:', container);
+    console.log('Container state before accessing innerHTML:', powersdk.container);
 
     try {
-      container.innerHTML = `
+      powersdk.container.innerHTML = `
         <div class="file-creator-container max-w-5xl mx-auto p-5">
           <div class="header mb-5">
             <h1 class="text-2xl font-bold mb-2">File Creator</h1>
@@ -43,16 +41,16 @@ export const plugin = async (context: any) => {
       return;
     }
 
-    console.log('Container state after setting innerHTML:', container);
+    console.log('Container state after setting innerHTML:', powersdk.container);
 
-    if (!container.innerHTML) {
+    if (!powersdk.container.innerHTML) {
       console.error('Container innerHTML is undefined.');
       return;
     }
 
     // Initialize card manager
-    const resultsContainer = container.querySelector('#extension-buttons');
-    cardManager = new CardManager(resultsContainer);
+    const resultsContainer = powersdk.container.querySelector('#extension-buttons');
+    cardManager = new powersdk.visual.CardManager(resultsContainer);
 
     // Add event listeners
     setupEventListeners();
@@ -62,7 +60,7 @@ export const plugin = async (context: any) => {
   }
 
   function setupEventListeners() {
-    const createFileBtn = container.querySelector('#create-file');
+    const createFileBtn = powersdk.container.querySelector('#create-file');
 
     if (createFileBtn) {
       createFileBtn.addEventListener('click', () => {
@@ -75,7 +73,7 @@ export const plugin = async (context: any) => {
   }
 
   function openFileDialog() {
-    const dialog = new Dialog();
+    const dialog = new powersdk.visual.Dialog();
 
     const elements = [
       {
@@ -109,10 +107,10 @@ export const plugin = async (context: any) => {
         if (fileName && fileExtension) {
           console.log(`Creating file: ${fileName}.${fileExtension}`);
 
-          // Save extension to localStorage
+          // Save extension to storage
           if (!extensions.includes(fileExtension)) {
             extensions.push(fileExtension);
-            localStorage.setItem('powereagle::file-creator::extension-list', JSON.stringify(extensions));
+            powersdk.storage.set('extension-list', extensions);
           }
 
           // Create the file using the utility function
@@ -124,7 +122,7 @@ export const plugin = async (context: any) => {
             baseContent = 'I NEED TO HAVE SOMETHING OTHERWISE EAGLE FAILS';
           }
 
-          const success = await createFile(fileName, fileExtension, baseContent);
+          const success = await powersdk.utils.files.createFile(fileName, fileExtension, baseContent);
           if (success) {
             console.log(`File ${fileName}.${fileExtension} created successfully.`);
           } else {
@@ -153,7 +151,7 @@ export const plugin = async (context: any) => {
             id: `create-${ext}`,
             text: `Create .${ext} File`,
             onClick: () => {
-              const dialog = new Dialog();
+              const dialog = new powersdk.visual.Dialog();
 
               const elements = [
                 {
@@ -188,10 +186,10 @@ export const plugin = async (context: any) => {
                   if (fileName) {
                     console.log(`Creating file: ${fileName}.${fileExtension}`);
 
-                    // Save extension to localStorage
+                    // Save extension to storage
                     if (!extensions.includes(fileExtension)) {
                       extensions.push(fileExtension);
-                      localStorage.setItem('powereagle::file-creator::extension-list', JSON.stringify(extensions));
+                      powersdk.storage.set('extension-list', extensions);
                     }
 
                     // Create the file using the utility function
@@ -203,7 +201,7 @@ export const plugin = async (context: any) => {
                       baseContent = 'I NEED TO HAVE SOMETHING OTHERWISE EAGLE FAILS';
                     }
 
-                    const success = await createFile(fileName, fileExtension, baseContent);
+                    const success = await powersdk.utils.files.createFile(fileName, fileExtension, baseContent);
                     if (success) {
                       console.log(`File ${fileName}.${fileExtension} created successfully.`);
                     } else {
@@ -224,7 +222,7 @@ export const plugin = async (context: any) => {
   }
 
   function loadExtensions(): string[] {
-    const stored = localStorage.getItem('powereagle::file-creator::extension-list');
-    return stored ? JSON.parse(stored) : [];
+    const extensions = powersdk.storage.get('extension-list');
+    return extensions || [];
   }
 };

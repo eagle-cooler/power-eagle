@@ -1,19 +1,12 @@
 // Plugin download functionality
 
-import { extractZip, listZipContents } from '../sdk/utils';
+import { extractZip, listZipContents } from '../sdk/utils/files';
+import { BaseManager } from '../sdk/utils/logging';
+import { getUserHomeDirectory, ensurePowerEagleDirectories } from '../sdk/utils/paths';
 
-export class PluginDownload {
-  private debugMode: boolean = true;
-
-  /**
-   * Logs debug messages when debug mode is enabled
-   * @param message - Debug message to log
-   * @param args - Additional arguments to log
-   */
-  private debugLog(message: string, ...args: any[]): void {
-    if (this.debugMode) {
-      console.log(`[PluginDownload DEBUG] ${message}`, ...args);
-    }
+export class PluginDownload extends BaseManager {
+  constructor() {
+    super('PluginDownload');
   }
 
   /**
@@ -67,14 +60,14 @@ export class PluginDownload {
   private async downloadAndExtractPlugin(url: string, eagle: any, onRescan: () => void): Promise<boolean> {
     try {
       // Get user home directory
-      const userHome = await this.getUserHomeDirectory();
+      const userHome = await getUserHomeDirectory();
       const downloadPath = `${userHome}/.powereagle/download/new.zip`;
       const extensionsPath = `${userHome}/.powereagle/extensions`;
 
       this.debugLog(`Downloading to: ${downloadPath}`);
 
       // Ensure directories exist
-      await this.ensureDirectoriesExist(userHome);
+      await ensurePowerEagleDirectories(userHome);
 
       // Download the file
       await this.downloadFile(url, downloadPath);
@@ -105,47 +98,6 @@ export class PluginDownload {
     } catch (error) {
       this.debugLog(`Download and extract failed:`, error);
       throw error;
-    }
-  }
-
-  /**
-   * Gets user home directory using Eagle API
-   * @returns Promise<string> - Home directory path
-   */
-  private async getUserHomeDirectory(): Promise<string> {
-    try {
-      // Try Eagle API first
-      if (eagle && eagle.os && eagle.os.homedir) {
-        return await eagle.os.homedir();
-      }
-      
-      // Fallback to Node.js
-      const os = require('os');
-      return os.homedir();
-    } catch (error) {
-      this.debugLog('Failed to get home directory:', error);
-      throw new Error(`Could not determine user home directory: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Ensures required directories exist
-   * @param userHome - User home directory
-   */
-  private async ensureDirectoriesExist(userHome: string): Promise<void> {
-    const fs = require('fs');
-
-    const directories = [
-      `${userHome}/.powereagle`,
-      `${userHome}/.powereagle/download`,
-      `${userHome}/.powereagle/extensions`
-    ];
-
-    for (const dir of directories) {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-        this.debugLog(`Created directory: ${dir}`);
-      }
     }
   }
 
@@ -191,8 +143,8 @@ export class PluginDownload {
       this.debugLog(`Zip contains files:`, zipContents);
 
       // Check for required files
-      const hasPluginJson = zipContents.some(file => file === 'plugin.json' || file.endsWith('/plugin.json'));
-      const hasMainJs = zipContents.some(file => file === 'main.js' || file.endsWith('/main.js'));
+      const hasPluginJson = zipContents.some((file: string) => file === 'plugin.json' || file.endsWith('/plugin.json'));
+      const hasMainJs = zipContents.some((file: string) => file === 'main.js' || file.endsWith('/main.js'));
 
       if (!hasPluginJson || !hasMainJs) {
         this.debugLog(`Missing required files. Has plugin.json: ${hasPluginJson}, Has main.js: ${hasMainJs}`);

@@ -1,21 +1,14 @@
 // Plugin execution and isolation functionality
 
 import { ExtensionInfo } from '../sdk/types';
+import { BaseManager } from '../sdk/utils/logging';
 
-export class PluginExecutor {
+export class PluginExecutor extends BaseManager {
   private activePluginContainers: Map<string, HTMLElement> = new Map();
   private pluginEventListeners: Map<string, Set<() => void>> = new Map();
-  private debugMode: boolean = true;
 
-  /**
-   * Logs debug messages when debug mode is enabled
-   * @param message - Debug message to log
-   * @param args - Additional arguments to log
-   */
-  private debugLog(message: string, ...args: any[]): void {
-    if (this.debugMode) {
-      console.log(`[PluginExecutor DEBUG] ${message}`, ...args);
-    }
+  constructor() {
+    super('PluginExecutor');
   }
 
   /**
@@ -75,30 +68,17 @@ export class PluginExecutor {
    * @returns Promise<any> - Isolated context object with APIs and SDK components
    */
   async createIsolatedContext(extension: ExtensionInfo): Promise<any> {
-    // Import SDK components
-    const { CardManager } = await import('../sdk/card');
-    const EagleApi = await import('../sdk/webapi');
-    const dialogModule = await import('../sdk/dialog');
-    const utils = await import('../sdk/utils');
-    // Create clean context with only eagle and powersdk
+    // Import SDK context builder
+    const { createPowerSDKContext } = await import('../sdk');
+    
+    // Create clean context with organized namespaces
     const context = {
       eagle: (window as any).eagle,
-      powersdk: {
-        // Storage functionality
-        storage: this.createPluginStorage(extension.id),
-        // DOM container
-        container: this.createPluginContainer(extension.id),
-        // SDK components
-        CardManager,
-        // Eagle API
-        "webapi": EagleApi.default,
-        // Plugin info
-        pluginId: extension.id,
-
-        "Dialog" : dialogModule.Dialog,
-
-        "utils" : utils
-      }
+      powersdk: await createPowerSDKContext(
+        this.createPluginStorage(extension.id),
+        this.createPluginContainer(extension.id),
+        extension.id
+      )
     };
     
     return context;

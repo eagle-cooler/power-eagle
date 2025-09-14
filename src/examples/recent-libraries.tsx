@@ -1,7 +1,6 @@
 // Recent Libraries Plugin for Power Eagle
 export const plugin = async (context: any) => {
   const { eagle, powersdk } = context;
-  const { container, CardManager, webapi } = powersdk;
   console.log('Recent Libraries plugin loaded');
 
   // Plugin state
@@ -15,7 +14,7 @@ export const plugin = async (context: any) => {
   // Main functions
   async function initializeUI() {
     // Create the plugin interface with card layout
-    container.innerHTML = `
+    powersdk.container.innerHTML = `
       <div class="recent-libraries-container max-w-5xl mx-auto p-5">
         <div class="header mb-5">
           <h1 class="text-2xl font-bold mb-2">Recent Libraries</h1>
@@ -46,8 +45,8 @@ export const plugin = async (context: any) => {
     `;
 
     // Initialize card manager
-    const resultsContainer = container.querySelector('#library-results');
-    cardManager = new CardManager(resultsContainer);
+    const resultsContainer = powersdk.container.querySelector('#library-results');
+    cardManager = new powersdk.visual.CardManager(resultsContainer);
 
     // Add event listeners
     setupEventListeners();
@@ -57,9 +56,9 @@ export const plugin = async (context: any) => {
   }
 
   function setupEventListeners() {
-    const searchInput = container.querySelector('#library-search');
-    const refreshBtn = container.querySelector('#refresh-libraries');
-    const clearBtn = container.querySelector('#clear-invalid');
+    const searchInput = powersdk.container.querySelector('#library-search');
+    const refreshBtn = powersdk.container.querySelector('#refresh-libraries');
+    const clearBtn = powersdk.container.querySelector('#clear-invalid');
 
     if (searchInput) {
       searchInput.addEventListener('input', (e: any) => {
@@ -232,7 +231,7 @@ export const plugin = async (context: any) => {
   async function switchLibrary(libraryPath: string) {
     try {
       // Use webapi from SDK to switch library
-      await webapi.library.switch(libraryPath);
+      await powersdk.webapi.library.switch(libraryPath);
       
       eagle.notification.show({
         title: 'Library Switched',
