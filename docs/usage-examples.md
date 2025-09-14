@@ -19,7 +19,8 @@ file-counter/
 ```json
 {
   "id": "file-counter",
-  "name": "File Counter"
+  "name": "File Counter",
+  "description": "Count and track the number of selected files in Eagle"
 }
 ```
 

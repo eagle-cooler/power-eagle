@@ -58,7 +58,8 @@ const plugin = async (context) => {
 ```json
 {
   "id": "my-plugin",
-  "name": "My Plugin"
+  "name": "My Plugin",
+  "description": "A helpful description of what this plugin does"
 }
 ```
 

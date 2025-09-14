@@ -130,30 +130,39 @@ function App() {
         action: () => handleRemovePlugin(extensionId, extensionName),
         className: "text-error",
       },
+      {
+        text: `ID: ${extensionId}`,
+        action: () => {},
+        className: "text-gray-500 text-xs border-t",
+        isInfo: true,
+      },
     ];
 
-    menuItems.forEach((item) => {
+    menuItems.forEach((item: any) => {
       const menuItem = document.createElement("div");
       menuItem.className = `context-menu-item ${item.className || ""}`;
       menuItem.style.cssText = `
         padding: 8px 12px;
-        cursor: pointer;
+        cursor: ${item.isInfo ? 'default' : 'pointer'};
         border-bottom: 1px solid #f0f0f0;
+        ${item.isInfo ? 'border-top: 1px solid #e0e0e0; margin-top: 2px; font-size: 11px;' : ''}
       `;
       menuItem.textContent = item.text;
 
-      menuItem.addEventListener("click", () => {
-        item.action();
-        contextMenu.remove();
-      });
+      if (!item.isInfo) {
+        menuItem.addEventListener("click", () => {
+          item.action();
+          contextMenu.remove();
+        });
 
-      menuItem.addEventListener("mouseenter", () => {
-        menuItem.style.backgroundColor = "#f8f9fa";
-      });
+        menuItem.addEventListener("mouseenter", () => {
+          menuItem.style.backgroundColor = "#f8f9fa";
+        });
 
-      menuItem.addEventListener("mouseleave", () => {
-        menuItem.style.backgroundColor = "white";
-      });
+        menuItem.addEventListener("mouseleave", () => {
+          menuItem.style.backgroundColor = "white";
+        });
+      }
 
       contextMenu.appendChild(menuItem);
     });
@@ -183,7 +192,8 @@ function App() {
 
   const filteredExtensions = extensions.filter(ext =>
     ext.name.toLowerCase().includes(filterText.toLowerCase()) ||
-    ext.id.toLowerCase().includes(filterText.toLowerCase())
+    ext.id.toLowerCase().includes(filterText.toLowerCase()) ||
+    (ext.description && ext.description.toLowerCase().includes(filterText.toLowerCase()))
   );
 
   return (
@@ -272,7 +282,12 @@ function App() {
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-500 truncate">ID: {ext.id}</div>
+                    <div 
+                      className="text-xs text-gray-500 truncate" 
+                      title={ext.description || 'No description available'}
+                    >
+                      {ext.description || 'No description available'}
+                    </div>
                   </div>
                   <button
                     className="btn btn-sm btn-primary btn-outline"

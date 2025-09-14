@@ -17,7 +17,8 @@ Every Power Eagle plugin follows this simple structure:
 ```json
 {
   "id": "my-plugin",
-  "name": "My Plugin"
+  "name": "My Plugin",
+  "description": "A brief description of what this plugin does"
 }
 ```
 

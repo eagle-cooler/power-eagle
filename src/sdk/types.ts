@@ -3,11 +3,13 @@
 export interface PluginManifest {
   id: string;
   name: string;
+  description?: string;
 }
 
 export interface ExtensionInfo {
   id: string;
   name: string;
+  description?: string;
   path: string;
   manifest: PluginManifest;
   isBuiltin: boolean;

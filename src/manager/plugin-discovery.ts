@@ -30,6 +30,20 @@ export class PluginDiscovery {
   }
 
   /**
+   * Gets description for a plugin ID
+   * @param pluginId - Plugin ID
+   * @returns string - Plugin description
+   */
+  private getPluginDescription(pluginId: string): string {
+    const descriptionMap: Record<string, string> = {
+      'example-plugin': 'Demonstrates SDK features with Eagle API, CardManager, and Storage examples',
+      'recent-libraries': 'Manage and switch between your recent Eagle libraries with search and filtering',
+      'file-creator': 'Create files with custom extensions and manage file creation templates'
+    };
+    return descriptionMap[pluginId] || 'No description available';
+  }
+
+  /**
    * Discovers all available plugins (built-in examples and installed plugins)
    * @returns Promise<ExtensionInfo[]> - Array of discovered plugin information
    */
@@ -41,9 +55,11 @@ export class PluginDiscovery {
     const examplePlugins = BUILT_IN_PLUGINS.map(pluginId => ({
       id: pluginId,
       name: this.getPluginDisplayName(pluginId),
+      description: this.getPluginDescription(pluginId),
       manifest: {
         id: pluginId,
         name: this.getPluginDisplayName(pluginId),
+        description: this.getPluginDescription(pluginId),
       },
     }));
 
@@ -110,6 +126,7 @@ export class PluginDiscovery {
             installedPlugins.push({
               id: manifest.id,
               name: manifest.name,
+              description: manifest.description,
               path: pluginPath,
               manifest,
               isBuiltin: false,
@@ -148,10 +165,12 @@ export class PluginDiscovery {
       const mockExtension: ExtensionInfo = {
         id: 'downloaded-plugin',
         name: 'Downloaded Plugin',
+        description: 'A plugin downloaded from a remote URL',
         path: `${extensionsDir}/downloaded-plugin`,
         manifest: {
           id: 'downloaded-plugin',
           name: 'Downloaded Plugin',
+          description: 'A plugin downloaded from a remote URL',
         },
         isBuiltin: false,
       };

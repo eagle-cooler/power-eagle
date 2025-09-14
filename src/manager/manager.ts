@@ -3,7 +3,7 @@
 import { ExtensionInfo } from '../sdk/types';
 import { PluginDiscovery } from './plugin-discovery';
 import { PluginLoader } from './plugin-loader';
-import { PluginExecutor } from './plugin-executor';
+import { PluginExecutor } from './js-runner';
 import { PluginManagement } from './plugin-management';
 
 export class ExtensionManager {
