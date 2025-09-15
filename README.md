@@ -1,18 +1,40 @@
 > for gitops workflows, refer to [template](https://github.com/eagle-cooler/template)
 
-# Power Eagle - Meta Plugin System
+# Power Eagle - Userscript Plugin System for Eagle
 
-**Power Eagle** is a meta plugin system for Eagle.cool extensions that enables users to create, download, and manage custom userscript plugins. It provides a simple way to extend Eagle's functionality through URL-based plugin installation and rich UI components with organized SDK namespaces.
+**Power Eagle** is a userscript-style plugin system for Eagle.cool that enables quick, lightweight scripting extensions. While Eagle.cool already has a robust extension system, Power Eagle provides a **userscript experience** for simple, single-file plugins that can be installed instantly from URLs.
+
+Think of it like **Tampermonkey for Eagle** - paste a URL, get a working plugin in seconds. Perfect for quick automation, custom workflows, and community-shared utilities.
+
+## Why Power Eagle?
+
+**Eagle's Native Extensions**: Full-featured extensions with complex development workflows  
+**Power Eagle**: Simple userscript-style plugins for quick tasks and community sharing
+
+- 🚀 **Instant Installation**: Paste URL → Working plugin in seconds
+- 📝 **Simple Development**: Just `plugin.json` + `main.js/py` files  
+- 🔗 **Easy Sharing**: Share via GitHub releases or direct links
+- 🐍 **Multi-Language**: JavaScript for UI, Python for automation
+- 🔒 **Safe Execution**: Isolated contexts with Eagle API access
+
+## Use Cases
+
+- **Quick Utilities**: Simple tools like file creators, batch operations
+- **Automation Scripts**: Python scripts for Eagle library management  
+- **Community Sharing**: Easy distribution of helpful Eagle workflows
+- **Rapid Prototyping**: Test ideas without full extension development
+- **Personal Workflows**: Custom scripts tailored to your specific needs
 
 ## Features
 
-- 🔌 **Plugin Management**: Download and install plugins from URLs
+- 🔌 **Instant Plugin Installation**: Download and install from URLs
 - 🎨 **Rich UI Support**: SDK for complex interfaces with organized namespaces
 - 🔒 **Isolated Execution**: Safe plugin contexts with prefixed storage
 - 📦 **System Integration**: Native zip extraction using OS APIs
-- 🎯 **Simple Development**: Just `plugin.json` + `main.js` files
+- 🎯 **Simple Development**: Just `plugin.json` + script files
 - 🏗️ **Organized SDK**: Structured namespaces (`powersdk.visual`, `powersdk.utils`, `powersdk.storage`)
-- 🐍 **Python Script Support**: Execute Python scripts with Eagle context integration
+- 🐍 **Multi-Language Support**: JavaScript for UI, Python for automation
+- 🔄 **Auto-Overwrite**: Smart plugin updates (same ID = automatic replacement)
 
 ## Plugin Types
 

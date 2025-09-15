@@ -1,6 +1,8 @@
 # Power Eagle SDK Reference
 
-The Power Eagle SDK provides a comprehensive set of tools and APIs for creating userscript plugins that extend Eagle.cool functionality. All plugins receive a `context` object containing both Eagle's native API and Power Eagle's enhanced SDK.
+The Power Eagle SDK provides a comprehensive set of tools and APIs for creating userscript-style plugins that extend Eagle.cool functionality with minimal setup. Power Eagle brings the **Tampermonkey experience** to Eagle - simple scripts that can be installed instantly from URLs.
+
+All plugins receive a `context` object containing both Eagle's native API and Power Eagle's enhanced SDK with organized namespaces.
 
 ## Plugin Structure
 

@@ -1,37 +1,40 @@
-# Product Context: Power Eagle Meta Plugin System
+# Product Context: Power Eagle Userscript System
 
 ## Problem Solved
-Eagle.cool users need a way to extend functionality through custom plugins without complex development setup.
+Eagle.cool has powerful native extensions, but lacks a simple way to create and share lightweight scripts. Users need a **userscript experience** for quick automation and community sharing.
 
 ## Solution
-A meta plugin system that enables:
-- **Simple Plugin Creation**: Just `plugin.json` + `main.js` files
-- **Easy Installation**: Download plugins via URL
-- **Rich Interfaces**: Support for complex UIs with search, filtering, cards
-- **Safe Execution**: Isolated contexts prevent plugin conflicts
+A userscript-style plugin system that enables:
+- **Instant Installation**: Paste URL → Working plugin in seconds (like Tampermonkey)
+- **Simple Creation**: Just `plugin.json` + `main.js/py` files
+- **Easy Sharing**: Distribute via GitHub releases, Gists, any hosting
+- **Community Focus**: Built for peer-to-peer script distribution
 
 ## User Experience
-- **Discovery**: Browse installed plugins in main interface
-- **Installation**: Paste URL, automatic download and validation
-- **Management**: Right-click context menu for plugin actions
-- **Rich UIs**: Plugins can create complex interfaces (demonstrated by Recent Libraries)
+- **Discovery**: Find plugin URLs on GitHub, forums, social media
+- **Installation**: Paste URL in Power Eagle → Instant download and install
+- **Management**: Simple interface to enable/disable/remove plugins
+- **Updates**: Re-paste same URL → Auto-overwrite with new version
+- **Rich UIs**: Plugins can create complex interfaces when needed
 
-## Plugin Developer Experience
-- **Minimal Setup**: Just two files required
-- **Simple API**: Single `context` object with all needed functionality
-- **Rich SDK**: CardManager, storage, Eagle API access
-- **Universal Pattern**: Same interface for all plugins
+## Developer Experience
+- **Minimal Setup**: Two files: `plugin.json` + script file
+- **Simple API**: Single `context` object with organized SDK namespaces
+- **Multiple Languages**: JavaScript for UI, Python for automation
+- **Eagle Integration**: Full access to Eagle's API and data structures
+- **Community Sharing**: No complex distribution - just host a zip file
 
-## Key Features
-- **URL-based Installation**: Download plugins from any zip URL
-- **System API Integration**: Native zip extraction (no external dependencies)
-- **Isolated Execution**: Each plugin runs in its own context
-- **Rich UI Support**: CardManager component for complex layouts
-- **Context Menu Management**: Clean plugin management without UI clutter
+## Key Differentiators vs Eagle Native Extensions
+- **Speed**: Instant installation vs complex setup
+- **Simplicity**: 2 files vs full development environment
+- **Sharing**: URL-based vs manual file management
+- **Community**: Designed for sharing small utilities
+- **Scope**: Focused on scripts/utilities vs full applications
 
 ## Success Metrics
-- ✅ Plugins can be downloaded and installed
-- ✅ Rich UI plugins work (Recent Libraries example)
-- ✅ Plugin isolation prevents conflicts
-- ✅ System uses native APIs (no external packages)
-- ✅ Clean, maintainable architecture
+- ✅ URL-based installation works reliably
+- ✅ Auto-overwrite enables easy updates
+- ✅ Rich UI support for complex plugins
+- ✅ Python script integration with Eagle context
+- ✅ Isolated execution prevents conflicts
+- ✅ Community can easily share and discover plugins

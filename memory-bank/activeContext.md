@@ -1,53 +1,55 @@
-# Active Context: Power Eagle Meta Plugin System
+# Active Context: Power Eagle Userscript System
 
-## Current State: **COMPLETE & ENHANCED WITH PYTHON SCRIPT SUPPORT**
+## Current State: **COMPLETE & PRODUCTION READY**
+
+### Project Understanding Clarified
+Power Eagle is a **userscript-style plugin system** for Eagle.cool, providing a Tampermonkey-like experience for quick script installation and sharing. It complements Eagle's native extensions by focusing on simplicity and instant gratification.
 
 ### Recent Accomplishments
-- ✅ **Plugin Download System**: Real URL downloading with zip validation using system APIs
+- ✅ **Instant Plugin Installation**: Real URL downloading with zip validation using system APIs
+- ✅ **Auto-Overwrite Updates**: Smart plugin replacement (same ID = automatic overwrite)
 - ✅ **System API Integration**: PowerShell (Windows) and unzip (macOS) for zip extraction
-- ✅ **Modular Architecture**: Split into focused components (discovery, loader, executor, management, download)
+- ✅ **Modular Architecture**: Clean separation of concerns (discovery, loader, executor, management, download)
 - ✅ **Universal Plugin Interface**: All plugins use `plugin(context)` with `{eagle, powersdk}` destructuring
-- ✅ **Organized Namespace Structure**: `powersdk.visual.Button`, `powersdk.utils.files.createFile`, `powersdk.storage.set/get`
-- ✅ **SDK Context Builder**: `createPowerSDKContext()` function provides structured imports
-- ✅ **TypeScript Conversion**: Converted webapi.js to webapi.ts with proper types
-- ✅ **Code Cleanup**: Removed unused functions and fixed all syntax errors
-- ✅ **Enhanced Plugin Examples**: All examples demonstrate organized import patterns
-- ✅ **Python Script Plugin Support**: New plugin type with Eagle state monitoring and context passing
-- ✅ **Eagle Item/Folder Operation Utilities**: New `op.ts` module with folder-to-tag and tag-to-folder swap operations
-- ✅ **Enhanced Root Listeners**: Improved Eagle state monitoring with targeted event types and better change detection
+- ✅ **Organized SDK Namespaces**: `powersdk.visual.*`, `powersdk.utils.*`, `powersdk.storage.*`, `powersdk.webapi.*`
+- ✅ **Multi-Language Support**: JavaScript for UI, Python for automation
+- ✅ **TypeScript Conversion**: Full type safety and modern development experience
+- ✅ **Enhanced Plugin Examples**: Demonstrate real-world use cases and patterns
 
 ### Architecture Components
-- **PluginDiscovery**: Scans installed plugins, downloads from URLs
+- **PluginDiscovery**: Scans installed plugins, handles URL-based downloads
 - **PluginLoader**: Loads plugin code from files/examples
 - **PluginExecutor**: Executes JavaScript plugins in isolated contexts
 - **PythonScriptRunner**: Executes Python scripts with Eagle context integration
-- **PluginManagement**: Handles plugin removal/hiding
-- **PluginDownload**: Downloads and validates zip files using system APIs
-- **RootListeners**: Eagle application state monitoring with polling-based change detection and targeted event filtering
-- **Operation Utilities (op.ts)**: Eagle folder/tag conversion utilities for item organization workflows
+- **PluginManagement**: Handles plugin removal/hiding/management
+- **PluginDownload**: Downloads and validates zip files using system APIs with auto-overwrite
+- **RootListeners**: Eagle application state monitoring for Python scripts
+- **Operation Utilities**: Eagle folder/tag conversion utilities
 
 ### Plugin Types Supported
-1. **JavaScript Plugins** (`"type": "plugin"`): Traditional userscript plugins with SDK access
-2. **Python Scripts** (`"type": "python-script"`): Python scripts with Eagle context via environment variables
+1. **JavaScript Plugins** (`"type": "plugin"`): Rich UI plugins with full SDK access
+2. **Python Scripts** (`"type": "python-script"`): Automation scripts with Eagle context via environment variables
 
-### Python Script Features
-- **Eagle Context Integration**: Full selected folders, items, and library info passed as JSON via `POWEREAGLE_CONTEXT` environment variable
-- **Eagle State Monitoring**: Root listeners for itemChange/libraryChange/folderChange events
-- **Conditional Execution**: Scripts with `onStart` event auto-execute, others require manual execution
-- **Manual Controls**: Execute and Clear buttons for user-controlled script execution
-- **Output Container**: Selectable textbox for stdout/stderr display
-- **Error Handling**: Wrapped callbacks with automatic cleanup on failure
-- **Serialization Utilities**: Helper functions for Eagle data structure serialization
+### Key Features Delivered
+- **Instant Installation**: Paste URL → Working plugin in seconds
+- **Community Sharing**: Easy distribution via GitHub releases or any hosting
+- **Auto-Overwrite**: Re-download same plugin automatically updates
+- **Rich UI Support**: Complex interfaces with CardManager, Dialog, Button components
+- **Eagle Integration**: Full access to Eagle's API and data structures
+- **Isolated Execution**: Safe plugin contexts with prefixed storage
+- **Multi-Language**: JavaScript for UI work, Python for automation/scripting
 
 ### Plugin Examples
-- **Basic Plugin**: SDK demonstrations (Eagle API, CardManager, Storage) - Uses `powersdk.visual.CardManager`, `powersdk.storage.set/get`
-- **Recent Libraries**: Complex UI with search, filtering, library management - Uses `powersdk.container`, `powersdk.visual.CardManager`, `powersdk.webapi.library.switch`
-- **File Creator**: Dynamic file creation with extension management - Uses `powersdk.visual.Dialog`, `powersdk.utils.files.createFile`, `powersdk.storage.set/get`
-- **Python Test Script**: Python script that accesses Eagle context and demonstrates environment variable usage
+- **Basic Plugin**: SDK demonstrations and Eagle API usage patterns
+- **Recent Libraries**: Advanced library switching with search and filtering
+- **File Creator**: Dynamic file creation with custom extensions
+- **Python Test Script**: Eagle context access and automation demonstration
 
-### Key Patterns
-- **Organized Namespaces**: `powersdk.visual.*`, `powersdk.utils.*`, `powersdk.storage.*`, `powersdk.webapi.*`
-- **Context Object**: Single `context` parameter with `{eagle, powersdk}`
+### Current Focus
+System is complete and ready for community use. Focus areas:
+- Documentation clarity about userscript vs native extension differences
+- Community adoption and plugin sharing
+- User experience refinements based on real usage
 - **createPowerSDKContext**: Centralized function for building organized powersdk object
 - **Isolation**: DOM containers, prefixed storage, tracked event listeners
 - **System APIs**: Native zip extraction (no external packages)

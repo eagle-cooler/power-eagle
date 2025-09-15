@@ -1,10 +1,10 @@
 # Python Script Plugins
 
-Python Script plugins are a powerful feature of Power Eagle that allows you to write Python scripts that can access and process Eagle data. These scripts receive full Eagle context via environment variables and can interact with Eagle's state in real-time.
+Python Script plugins bring the **userscript experience** to Python automation within Eagle. Write simple Python scripts that can access Eagle data and automate library operations - perfect for batch processing, data analysis, and custom workflows that benefit from Python's rich ecosystem.
 
 ## Overview
 
-Python script plugins run as separate processes and receive Eagle data through the `POWEREAGLE_CONTEXT` environment variable. This enables you to use the full power of Python's ecosystem while maintaining integration with Eagle.
+Python script plugins run as separate processes and receive Eagle data through the `POWEREAGLE_CONTEXT` environment variable. This enables you to leverage Python's powerful libraries while maintaining seamless integration with Eagle - combining the simplicity of userscripts with the power of Python automation.
 
 ## Key Features
 

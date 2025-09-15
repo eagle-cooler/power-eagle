@@ -1,6 +1,6 @@
 # Power Eagle Usage Examples
 
-This document provides practical examples of how to use Power Eagle plugins, based on real-world implementations.
+This document provides practical examples of how to create userscript-style plugins for Power Eagle. These examples demonstrate the simplicity and power of the userscript approach - quick utilities that can be created and shared easily within the Eagle community.
 
 ## File Counter Plugin Example
 
