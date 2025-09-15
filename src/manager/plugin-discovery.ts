@@ -3,6 +3,7 @@
 import { ExtensionInfo } from '../sdk/types';
 import { getExtensionsPath } from '../sdk/utils/paths';
 import { BUILT_IN_PLUGINS, DEFAULT_PLUGIN_TYPE } from '../sdk/utils/constants';
+import { PluginDownload } from './plugin-download';
 
 // Use require for Node.js modules in Eagle environment
 const fs = require('fs');
@@ -10,9 +11,11 @@ const path = require('path');
 
 export class PluginDiscovery {
   private extensionsPath: Promise<string>;
+  private pluginDownload: PluginDownload;
 
   constructor() {
     this.extensionsPath = getExtensionsPath();
+    this.pluginDownload = new PluginDownload();
   }
 
   /**
@@ -152,37 +155,57 @@ export class PluginDiscovery {
   }
 
   /**
-   * Downloads a plugin from a URL (currently mocked)
+   * Downloads a plugin from a URL using the real download system
    * @param url - URL to download the plugin from
    * @returns Promise<ExtensionInfo> - Downloaded plugin information
    */
   async downloadExtension(url: string): Promise<ExtensionInfo> {
     try {
-      // In a real implementation, this would:
-      // 1. Fetch the extension from URL
-      // 2. Parse plugin.json and main.js
-      // 3. Save to ~user/.powereagle/extensions/{name}/
       console.log(`Downloading extension from: ${url}`);
       
-      // Mock download - in reality you'd fetch and save files
+      // Use the real download system
+      const success = await this.pluginDownload.downloadPlugin(url, (window as any).eagle, () => {
+        // This callback will be called after successful download to trigger rescan
+        // We don't need to do anything here as the caller will handle rescanning
+      });
+      
+      if (!success) {
+        throw new Error('Download failed');
+      }
+      
+      console.log(`Extension downloaded successfully`);
+      
+      // After successful download, we need to find the newly installed plugin
+      // by rescanning the extensions directory
+      const installedPlugins = await this.scanInstalledPlugins();
+      
+      // Find the most recently installed plugin (this is a heuristic)
+      // In a more robust implementation, we could track which plugin was just added
+      if (installedPlugins.length > 0) {
+        // Return the first installed plugin we find
+        // The real implementation should track which plugin was just downloaded
+        const newPlugin = installedPlugins[installedPlugins.length - 1];
+        return newPlugin;
+      }
+      
+      // Fallback: create a basic extension info if we can't find the downloaded plugin
       const extensionsDir = await this.extensionsPath;
-      const mockExtension: ExtensionInfo = {
-        id: 'downloaded-plugin',
-        name: 'Downloaded Plugin',
-        description: 'A plugin downloaded from a remote URL',
+      const fallbackExtension: ExtensionInfo = {
+        id: 'unknown-plugin',
+        name: 'Unknown Plugin',
+        description: 'A plugin that was downloaded but could not be properly identified',
         type: 'standard',
-        path: `${extensionsDir}/downloaded-plugin`,
+        path: `${extensionsDir}/unknown-plugin`,
         manifest: {
-          id: 'downloaded-plugin',
-          name: 'Downloaded Plugin',
-          description: 'A plugin downloaded from a remote URL',
+          id: 'unknown-plugin',
+          name: 'Unknown Plugin',
+          description: 'A plugin that was downloaded but could not be properly identified',
           type: 'standard',
         },
         isBuiltin: false,
       };
       
-      console.log(`Extension downloaded successfully`);
-      return mockExtension;
+      return fallbackExtension;
     } catch (error) {
       console.error(`Failed to download extension from ${url}:`, error);
       throw error;

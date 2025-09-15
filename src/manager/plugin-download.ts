@@ -1,6 +1,6 @@
 // Plugin download functionality
 
-import { extractZip, listZipContents } from '../sdk/utils/files';
+import { extractZip } from '../sdk/utils/files';
 import { BaseManager } from '../sdk/utils/logging';
 import { getUserHomeDirectory, ensurePowerEagleDirectories } from '../sdk/utils/paths';
 
@@ -138,20 +138,7 @@ export class PluginDownload extends BaseManager {
       const fs = require('fs');
       const path = require('path');
 
-      // List zip contents to validate required files
-      const zipContents = await listZipContents(zipPath);
-      this.debugLog(`Zip contains files:`, zipContents);
-
-      // Check for required files
-      const hasPluginJson = zipContents.some((file: string) => file === 'plugin.json' || file.endsWith('/plugin.json'));
-      const hasMainJs = zipContents.some((file: string) => file === 'main.js' || file.endsWith('/main.js'));
-
-      if (!hasPluginJson || !hasMainJs) {
-        this.debugLog(`Missing required files. Has plugin.json: ${hasPluginJson}, Has main.js: ${hasMainJs}`);
-        return false;
-      }
-
-      // Extract to temporary directory first to read plugin.json
+      // Extract to temporary directory first
       const tempDir = path.join(extensionsPath, 'temp');
       if (fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
@@ -165,18 +152,32 @@ export class PluginDownload extends BaseManager {
         return false;
       }
 
-      // Read plugin.json to get plugin ID
+      // Check for required files after extraction
       const pluginJsonPath = path.join(tempDir, 'plugin.json');
-      if (!fs.existsSync(pluginJsonPath)) {
-        this.debugLog('plugin.json not found after extraction');
+      const mainJsPath = path.join(tempDir, 'main.js');
+      
+      const hasPluginJson = fs.existsSync(pluginJsonPath);
+      const hasMainJs = fs.existsSync(mainJsPath);
+
+      if (!hasPluginJson || !hasMainJs) {
+        this.debugLog(`Missing required files. Has plugin.json: ${hasPluginJson}, Has main.js: ${hasMainJs}`);
+        // Clean up temp directory
+        if (fs.existsSync(tempDir)) {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        }
         return false;
       }
 
+      // Read plugin.json to get plugin ID
       const pluginJsonContent = fs.readFileSync(pluginJsonPath, 'utf8');
       const pluginManifest = JSON.parse(pluginJsonContent);
       
       if (!pluginManifest.id) {
         this.debugLog('Plugin manifest missing ID');
+        // Clean up temp directory
+        if (fs.existsSync(tempDir)) {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        }
         return false;
       }
 

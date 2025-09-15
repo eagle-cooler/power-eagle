@@ -9,8 +9,6 @@
 export async function extractZip(zipPath: string, extractPath: string): Promise<boolean> {
   try {
     const { exec } = require('child_process');
-    const { promisify } = require('util');
-    const execAsync = promisify(exec);
     const fs = require('fs');
 
     // Ensure extract directory exists
@@ -35,54 +33,26 @@ export async function extractZip(zipPath: string, extractPath: string): Promise<
     }
 
     console.log(`Extracting zip: ${command}`);
-    await execAsync(command);
     
-    return true;
+    // Use a manual promise wrapper instead of promisify to avoid compatibility issues
+    return new Promise((resolve, reject) => {
+      exec(command, (error: any, _stdout: any, _stderr: any) => {
+        if (error) {
+          console.error('Zip extraction failed:', error);
+          reject(error);
+        } else {
+          console.log('Zip extraction completed successfully');
+          resolve(true);
+        }
+      });
+    });
   } catch (error) {
     console.error('Zip extraction failed:', error);
     return false;
   }
 }
 
-/**
- * Lists contents of a zip file using system APIs
- * @param zipPath - Path to the zip file
- * @returns Promise<string[]> - Array of file paths in the zip
- */
-export async function listZipContents(zipPath: string): Promise<string[]> {
-  try {
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
-    const execAsync = promisify(exec);
 
-    const platform = process.platform;
-    let command: string;
-
-    if (platform === 'win32') {
-      // Windows: Use PowerShell
-      const zipPathEscaped = zipPath.replace(/\\/g, '\\\\');
-      command = `powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead('${zipPathEscaped}').Entries | Select-Object -ExpandProperty FullName"`;
-    } else if (platform === 'darwin') {
-      // macOS: Use unzip -l
-      command = `unzip -l "${zipPath}" | grep -E '^[[:space:]]*[0-9]+' | awk '{print $NF}'`;
-    } else {
-      throw new Error(`Unsupported platform: ${platform}`);
-    }
-
-    const { stdout } = await execAsync(command);
-    
-    if (platform === 'win32') {
-      // PowerShell returns each file on a new line
-      return stdout.trim().split('\n').filter((line: string) => line.trim());
-    } else {
-      // unzip -l returns file paths
-      return stdout.trim().split('\n').filter((line: string) => line.trim());
-    }
-  } catch (error) {
-    console.error('Failed to list zip contents:', error);
-    return [];
-  }
-}
 
 /**
  * Creates a new file and adds it to Eagle

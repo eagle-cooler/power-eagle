@@ -53,7 +53,11 @@ export class ExtensionManager {
   async downloadExtension(url: string): Promise<void> {
     try {
       const extension = await this.discovery.downloadExtension(url);
-      this.extensions.set(extension.id, extension);
+      
+      // After successful download, rescan all extensions to get the updated list
+      await this.scanExtensions();
+      
+      console.log(`Successfully downloaded and registered extension: ${extension.name} (${extension.id})`);
     } catch (error) {
       console.error(`Failed to download extension from ${url}:`, error);
       throw error;

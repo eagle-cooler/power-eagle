@@ -41,7 +41,6 @@ export {
 
 export {
   extractZip,
-  listZipContents,
   createFile,
   formatBytes
 } from './files';
