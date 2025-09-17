@@ -11,8 +11,10 @@ import {
 // function to build py context to pass as a environment variable
 const buildPyContext = async () => {
     const context = {
-        folders: createSerializedSelectedFolders(),
-        items: await createSerializedSelectedItems(),
+        selected : {
+          folders: await createSerializedSelectedFolders(),
+          items: await createSerializedSelectedItems(),
+        },
         apiToken: await webapi._internalGetToken() || ''
     };
 
