@@ -85,7 +85,7 @@ export class PythonScriptRunner extends BaseManager {
       try {
         const result = await pythonExecutor.executeScript(scriptPath, {
           pythonEnv: pythonEnv,
-          timeout: 30000 // 30 second timeout
+          timeout: 600000 // 10 minute timeout
         });
         
         // We'll set up the output container reference later
