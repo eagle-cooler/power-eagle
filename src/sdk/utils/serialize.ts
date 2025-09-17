@@ -61,23 +61,3 @@ export async function createSerializedSelectedItems() {
     : [];
 }
 
-/**
- * Creates serialized library info with full properties
- * @param libraryInfo - Raw library info from eagle.library.info()
- * @returns Serialized library info object with all properties
- */
-export async function createSerializedLibraryInfo() {
-  const libraryInfo = await eagle.library.info();
-  return libraryInfo
-    ? {
-        folders: libraryInfo.folders || [],
-        smartFolders: libraryInfo.smartFolders || [],
-        quickAccess: libraryInfo.quickAccess || [],
-        tagsGroups: libraryInfo.tagsGroups || [],
-        modificationTime: libraryInfo.modificationTime,
-        applicationVersion: libraryInfo.applicationVersion,
-        path: libraryInfo.path,
-        name: libraryInfo.name,
-      }
-    : null;
-}

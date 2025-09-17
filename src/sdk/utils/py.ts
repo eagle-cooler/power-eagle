@@ -5,7 +5,6 @@ import { BaseManager } from './logging';
 import {
   createSerializedSelectedFolders,
   createSerializedSelectedItems,
-  createSerializedLibraryInfo
 } from './serialize';
 
 
@@ -14,7 +13,6 @@ const buildPyContext = async () => {
     const context = {
         folders: createSerializedSelectedFolders(),
         items: await createSerializedSelectedItems(),
-        libraryInfo: await createSerializedLibraryInfo(),
         apiToken: await webapi._internalGetToken() || ''
     };
 
