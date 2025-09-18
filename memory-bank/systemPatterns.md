@@ -2,7 +2,86 @@
 
 ## Architecture Overview
 ```
-App.tsx → ExtensionManager → [PluginDiscovery, PluginLoader, PluginExecutor, PluginManagement, PluginDownload]
+App.tsx → ExtensionManager → [PluginDiscovery, PluginLoader, PluginExecutor, PluginManagement, PluginDownload, PythonScriptEvaler]
+```
+
+## **Revolutionary Python Callback System** 🚀
+
+### **PythonScriptEvaler Architecture**
+
+```typescript
+// Bidirectional Python ↔ Eagle Communication Engine
+class PythonScriptEvaler {
+  // Executes Python with real-time callback signal interception
+  async executeScriptWithCallbacks(scriptPath: string, options: PythonExecutionOptions)
+  
+  // Intelligent stderr filtering separates callbacks from regular output
+  private async handleStderrData(data: string, pluginId: string): Promise<string>
+  
+  // Security-first callback signal validation with token checking
+  private async isCallbackSignal(line: string, pluginId: string): Promise<boolean>
+  
+  // Safe Eagle API execution using asyncExecReadonly isolation
+  private async executeEagleAPICall(method: string, args: Record<string, any>)
+}
+```
+
+### **Callback Signal Protocol**
+
+```typescript
+// Signal Format: $$${api_token}$$${plugin_id}$$${method}(args...)
+// Example: $$$abc123$$$my-plugin$$$folder.create(name="New Folder", parent=null)
+
+interface ParsedCallback {
+  token: string;      // Eagle API token for security validation
+  pluginId: string;   // Plugin identifier for isolation
+  method: string;     // Eagle API method (e.g., "folder.create")
+  args: Record<string, any>; // Method arguments parsed from signal
+}
+```
+
+### **Stderr Processing Flow**
+
+```typescript
+// Real-time stderr filtering during Python execution
+Python Script stderr: "Error message\n$$$token$$$plugin$$$method(...)\nAnother error"
+                     ↓
+PythonScriptEvaler.handleStderrData()
+                     ↓
+Parse & Filter:
+- "Error message" → Keep (pass to original handler)
+- "$$$token$$$plugin$$$method(...)" → Process & Remove (execute Eagle API)
+- "Another error" → Keep (pass to original handler)
+                     ↓
+Filtered stderr: "Error message\nAnother error"
+                     ↓
+Clean output to user, callbacks executed seamlessly
+```
+
+### **Security & Isolation**
+
+```typescript
+// Token validation prevents unauthorized API access
+const currentToken = await webapi._internalGetToken();
+if (callback.token !== currentToken) {
+  this.debugLog(`Token mismatch for callback: ${callback.method}`);
+  return; // Reject unauthorized callbacks
+}
+
+// Safe execution prevents code injection using asyncExecReadonly
+const result = await asyncExecReadonly(apiCallCode, context, ['eagle']);
+```
+
+### **Integration with py-eagle-cooler Library**
+
+```python
+# Python side using https://github.com/eagle-cooler/py-eagle-cooler
+from eagle_cooler.callback import EagleCallback
+
+# Direct Eagle API calls from Python
+EagleCallback.folder.create(name="My New Folder", parent=None)
+EagleCallback.notification.show(title="Hello", description="Python callback success!")
+EagleCallback.item.update_tags(item_id="some-id", tags=["new-tag"])
 ```
 
 ## Core Patterns
@@ -90,7 +169,9 @@ export const plugin = async (context: any) => {
 ### Component Responsibilities
 - **PluginDiscovery**: File system scanning, URL downloading
 - **PluginLoader**: Code loading from files/examples
-- **PluginExecutor**: Context creation, isolated execution
+- **PluginExecutor**: Context creation, isolated execution for JavaScript plugins
+- **PythonScriptRunner**: Python script execution with Eagle context integration
+- **PythonScriptEvaler**: **Revolutionary callback signal processing and Eagle API execution**
 - **PluginManagement**: Removal, hiding, cleanup
 - **PluginDownload**: Zip handling, validation, installation
 - **RootListeners**: Eagle state monitoring with configurable event types and optimized polling

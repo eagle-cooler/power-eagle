@@ -34,7 +34,8 @@ Think of it like **Tampermonkey for Eagle** - paste a URL, get a working plugin 
 - 🎯 **Simple Development**: Just `plugin.json` + script files
 - 🏗️ **Organized SDK**: Structured namespaces (`powersdk.visual`, `powersdk.utils`, `powersdk.storage`)
 - 🐍 **Multi-Language Support**: JavaScript for UI, Python for automation
-- 🔄 **Auto-Overwrite**: Smart plugin updates (same ID = automatic replacement)
+- � **Python Callbacks**: Bidirectional Python ↔ Eagle communication via [py-eagle-cooler](https://github.com/eagle-cooler/py-eagle-cooler)
+- �🔄 **Auto-Overwrite**: Smart plugin updates (same ID = automatic replacement)
 
 ## Plugin Types
 
@@ -42,7 +43,7 @@ Think of it like **Tampermonkey for Eagle** - paste a URL, get a working plugin 
 Traditional userscript plugins with full SDK access and isolated execution contexts.
 
 ### 2. Python Scripts (`"type": "python-script"`)
-Python scripts that receive Eagle context via environment variables and can interact with Eagle state.
+Python scripts that receive Eagle context via environment variables and can **call back to Eagle API** using the [py-eagle-cooler](https://github.com/eagle-cooler/py-eagle-cooler) library for full bidirectional communication.
 
 ## Quick Start
 
@@ -98,6 +99,7 @@ const plugin = async (context) => {
 # main.py
 import os
 import json
+from eagle_cooler.callback import EagleCallback
 
 # Get Eagle context from environment variable
 context_json = os.environ.get('POWEREAGLE_CONTEXT', '{}')
@@ -112,8 +114,27 @@ print(f"Library: {library_info.get('name', 'Unknown')}")
 print(f"Selected folders: {len(selected_folders)}")
 print(f"Selected items: {len(selected_items)}")
 
-for folder in selected_folders:
-    print(f"Folder: {folder['name']} (ID: {folder['id']})")
+# 🚀 REVOLUTIONARY: Call back to Eagle API directly from Python!
+if selected_folders:
+    folder_name = selected_folders[0]['name']
+    
+    # Create a new folder
+    EagleCallback.folder.create(name=f"Processed_{folder_name}", parent=None)
+    
+    # Show notification
+    EagleCallback.notification.show(
+        title="Python Callback Success!",
+        description=f"Created folder for {folder_name}"
+    )
+    
+    # Add tags to selected items
+    for item in selected_items:
+        EagleCallback.item.update_tags(
+            item_id=item['id'], 
+            tags=["python-processed", "automated"]
+        )
+
+print("✅ Python script completed with Eagle API callbacks!")
 ```
 
 ### Plugin Manifests
@@ -140,6 +161,62 @@ for folder in selected_folders:
 ```
 
 > **Note**: Python scripts with `"on": ["onStart"]` auto-execute when the plugin loads. Scripts without this will show manual Execute/Clear controls.
+
+## 🚀 Python Callbacks - Revolutionary Feature
+
+Power Eagle includes a **groundbreaking callback system** that allows Python scripts to directly call Eagle API methods, creating true bidirectional communication between Python and Eagle.
+
+### Installation
+
+```bash
+pip install eagle-cooler
+```
+
+### How It Works
+
+Python scripts send callback signals via stderr that Power Eagle intercepts and executes as Eagle API calls:
+
+```python
+from eagle_cooler.callback import EagleCallback
+
+# Direct Eagle API calls from Python!
+EagleCallback.folder.create(name="My New Folder", parent=None)
+EagleCallback.notification.show(title="Hello", description="From Python!")
+EagleCallback.item.update_tags(item_id="some-id", tags=["new-tag"])
+```
+
+### Key Features
+
+- **🔒 Secure**: Token-based authentication prevents unauthorized access
+- **🧹 Clean Output**: Callback signals are filtered from Python output automatically
+- **⚡ Real-time**: Callbacks execute immediately during Python script execution
+- **🔄 Bidirectional**: Full Python ↔ Eagle communication
+- **📚 Easy to Use**: Simple library installation and intuitive API
+
+### Example Use Cases
+
+```python
+# Batch organize files
+for item in selected_items:
+    if item['ext'] == 'jpg':
+        EagleCallback.folder.create(name="Photos", parent=None)
+        EagleCallback.item.move_to_folder(item_id=item['id'], folder_name="Photos")
+
+# Smart tagging based on analysis
+if analysis_result['confidence'] > 0.8:
+    EagleCallback.item.update_tags(
+        item_id=item['id'], 
+        tags=[analysis_result['category'], "ai-processed"]
+    )
+
+# Progress notifications
+EagleCallback.notification.show(
+    title="Processing Complete", 
+    description=f"Processed {len(items)} items successfully"
+)
+```
+
+For complete documentation, see the **[py-eagle-cooler repository](https://github.com/eagle-cooler/py-eagle-cooler)**.
 
 ## SDK Reference
 
