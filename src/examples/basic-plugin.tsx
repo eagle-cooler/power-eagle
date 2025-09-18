@@ -167,8 +167,9 @@ export const plugin = async (context: any) => {
   const primaryButton = new powersdk.visual.Button({
     text: 'Primary Button',
     variant: 'primary',
-    onClick: () => {
-      eagle.notification.show({
+    onClick: async () => {
+      await eagle.shell.beep();
+      await eagle.notification.show({
         title: 'Primary Button',
         description: 'You clicked the primary button!'
       });

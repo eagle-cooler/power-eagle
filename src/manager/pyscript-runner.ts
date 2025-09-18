@@ -2,7 +2,8 @@
 
 import { ExtensionInfo } from '../sdk/types';
 import { BaseManager } from '../sdk/utils/logging';
-import { pythonExecutor, PythonExecutionResult } from '../sdk/utils/py';
+import { PythonExecutionResult } from '../sdk/utils/py';
+import { pythonScriptEvaler } from './pyscript-evaler';
 import { rootListeners, EagleEventType } from '../sdk/root-listeners';
 
 export class PythonScriptRunner extends BaseManager {
@@ -83,7 +84,7 @@ export class PythonScriptRunner extends BaseManager {
     // Create execute callback for manual execution
     const executeCallback = async () => {
       try {
-        const result = await pythonExecutor.executeScript(scriptPath, {
+        const result = await pythonScriptEvaler.executeScriptWithCallbacks(scriptPath, {
           pythonEnv: pythonEnv,
           timeout: 600000 // 10 minute timeout
         });
@@ -263,7 +264,7 @@ export class PythonScriptRunner extends BaseManager {
         // Execute initial script
         context.output.log(`Auto-starting Python script: ${extension.name}`);
         
-        const result = await pythonExecutor.executeScript(scriptPath, {
+        const result = await pythonScriptEvaler.executeScriptWithCallbacks(scriptPath, {
           pythonEnv: pythonEnv,
           timeout: 30000 // 30 second timeout
         });
@@ -303,7 +304,7 @@ export class PythonScriptRunner extends BaseManager {
           context.output.log(`Event triggered: ${eventType}`);
           
           // Execute script again on event
-          pythonExecutor.executeScript(scriptPath, {
+          pythonScriptEvaler.executeScriptWithCallbacks(scriptPath, {
             pythonEnv: pythonEnv,
             timeout: 30000
           }).then(result => {
