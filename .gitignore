@@ -25,3 +25,4 @@ dist-ssr
 .zmem/local-config.toml
 /.cc-history
 /.codegraph
+coverage/
