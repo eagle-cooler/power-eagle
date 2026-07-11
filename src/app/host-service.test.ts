@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 import * as nodeOs from 'node:os';
-import { mapInstalled, mergeAvailable, createHostService, initHostService, buildHostContext } from './host-service';
+import { mapInstalled, mergeAvailable, createHostService, initHostService, buildHostContext, resolveHostContext, type HostService, type PluginSummary } from './host-service';
 import type { SaucepanEntry } from '../host/install/saucepan';
 import { resolveSaucepanBinary } from '../host/install/saucepan-binary';
 import { definePlugin } from '../sdui/activate';
@@ -161,6 +161,34 @@ describe('buildHostContext', () => {
     expect(ctx.contributions.fmt.services).toEqual({ methods: ['upper'], vars: ['version'] });
     expect(ctx.contributions.dark.widgets).toEqual(['badge']);
     expect(ctx.contributions.dark.theme).toBe(true);
+  });
+});
+
+describe('resolveHostContext', () => {
+  const svcSummary = (id: string): PluginSummary => ({
+    id, name: id, version: '1.0.0', source: 'github', kind: 'service', launchable: false,
+  });
+  const greeter = definePlugin({
+    manifest: { id: 'greeter', name: 'Greeter', version: '1.0.0', service: true },
+    provides: () => ({ hello: (name: string) => `hi ${name}` }),
+  }) as unknown as AnyPluginModule;
+
+  it('skips an installed contributor whose disk load rejects, keeping the rest', async () => {
+    const service: HostService = {
+      listAvailable: () => [svcSummary('greeter'), svcSummary('rotten')],
+      listBuckets: () => [],
+      install: () => {},
+      addBucket: () => {},
+      loadModule: async (id) => {
+        if (id === 'rotten') throw new Error('disk import failed');
+        return id === 'greeter' ? greeter : undefined;
+      },
+    };
+
+    const ctx = await resolveHostContext(service);
+
+    expect((ctx.services.greeter as { hello(n: string): string }).hello('a')).toBe('hi a');
+    expect(ctx.services.rotten).toBeUndefined();
   });
 });
 

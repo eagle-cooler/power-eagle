@@ -4,7 +4,7 @@
  * are always available and launchable; saucepan-installed visual plugins are
  * launchable too — loadModule resolves their on-disk path and imports them.
  */
-import { listBuiltins, getBuiltin, type AnyPluginModule } from '../plugins/builtins';
+import { listBuiltins, getBuiltin, listBuiltinModules, type AnyPluginModule } from '../plugins/builtins';
 import { activatePlugin, pluginKind } from '../sdui/activate';
 import { mergeThemes, EMPTY_THEME } from '../sdui/theme';
 import type { Theme } from '../sdui/types';
@@ -81,6 +81,8 @@ export interface HostContext {
   widgets: Record<string, WidgetComponent>;
   theme: Theme;
   contributions: Record<string, PluginContribution>;
+  /** Contributors that failed to load or activate: plugin id → error message. */
+  failures: Record<string, string>;
 }
 
 /**
@@ -97,33 +99,70 @@ export async function buildHostContext(
 ): Promise<HostContext> {
   const services: Record<string, unknown> = {};
   const contributions: Record<string, PluginContribution> = {};
+  const failures: Record<string, string> = {};
   let widgets: Record<string, WidgetComponent> = {};
   let theme: Theme = EMPTY_THEME;
 
   for (const module of modules) {
     const kind = pluginKind(module.manifest);
     const id = module.manifest.id;
-    if (kind === 'service') {
-      const app = await activatePlugin(module, eagle, services);
-      if (app.provides) {
-        services[id] = app.provides;
-        const entries = Object.entries(app.provides);
-        contributions[id] = {
-          services: {
-            methods: entries.filter(([, value]) => typeof value === 'function').map(([key]) => key),
-            vars: entries.filter(([, value]) => typeof value !== 'function').map(([key]) => key),
-          },
-        };
+    // A contributor that fails to activate is skipped and reported in failures.
+    try {
+      if (kind === 'service') {
+        const app = await activatePlugin(module, eagle, services);
+        if (app.provides) {
+          services[id] = app.provides;
+          const entries = Object.entries(app.provides);
+          contributions[id] = {
+            services: {
+              methods: entries.filter(([, value]) => typeof value === 'function').map(([key]) => key),
+              vars: entries.filter(([, value]) => typeof value !== 'function').map(([key]) => key),
+            },
+          };
+        }
+      } else if (kind === 'styling') {
+        const app = await activatePlugin(module, eagle, services);
+        if (app.widgets) widgets = { ...widgets, ...app.widgets };
+        if (app.theme) theme = mergeThemes(theme, app.theme);
+        contributions[id] = { widgets: Object.keys(app.widgets ?? {}), theme: Boolean(app.theme) };
       }
-    } else if (kind === 'styling') {
-      const app = await activatePlugin(module, eagle, services);
-      if (app.widgets) widgets = { ...widgets, ...app.widgets };
-      if (app.theme) theme = mergeThemes(theme, app.theme);
-      contributions[id] = { widgets: Object.keys(app.widgets ?? {}), theme: Boolean(app.theme) };
+    } catch (error) {
+      failures[id] = error instanceof Error ? error.message : String(error);
     }
   }
 
-  return { services, widgets, theme, contributions };
+  return { services, widgets, theme, contributions, failures };
+}
+
+/**
+ * Resolve the full shared context: the bundled service/styling plugins plus the
+ * enabled service/styling plugins installed on disk (loaded through the host
+ * service). Installed modules are appended after builtins so an installed
+ * contribution wins a collision; a disabled plugin is excluded, and one that
+ * fails to load or activate is skipped.
+ */
+export async function resolveHostContext(
+  service: HostService,
+  disabled: ReadonlySet<string> = new Set(),
+  eagle: Record<string, unknown> = {},
+): Promise<HostContext> {
+  const builtins = listBuiltinModules().filter((module) => !disabled.has(module.manifest.id));
+  const installedIds = service
+    .listAvailable()
+    .filter((plugin) => plugin.source !== 'builtin' && plugin.kind !== 'visual' && !disabled.has(plugin.id))
+    .map((plugin) => plugin.id);
+  const loadFailures: Record<string, string> = {};
+  const loaded = await Promise.all(
+    installedIds.map((id) =>
+      service.loadModule(id).catch((error: unknown) => {
+        loadFailures[id] = error instanceof Error ? error.message : String(error);
+        return undefined;
+      }),
+    ),
+  );
+  const installed = loaded.filter((module): module is AnyPluginModule => Boolean(module));
+  const context = await buildHostContext([...builtins, ...installed], eagle);
+  return { ...context, failures: { ...loadFailures, ...context.failures } };
 }
 
 /** The surface the shell uses to list, install, and launch plugins. */
