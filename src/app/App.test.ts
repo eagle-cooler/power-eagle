@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from './App';
 import type { HostService } from './host-service';
-import { getBuiltin } from '../plugins/builtins';
+import { getBuiltin, type AnyPluginModule } from '../plugins/builtins';
+import { definePlugin } from '../sdui/activate';
 import type { EagleHost } from '../plugins/eagle';
 
 // jsdom under Node 22 ships no localStorage without --localstorage-file; the real
@@ -67,21 +68,44 @@ describe('App shell (v3)', () => {
 
     await userEvent.click(screen.getByText('Clipboard'));
 
-    // Overview lists the clipboard service's methods (copy/read), built from the live context.
-    expect(await screen.findByText(/methods:\s*copy, read/iu)).toBeTruthy();
+    // The detail lists the clipboard service's methods as tokens, built from the live context.
+    expect(await screen.findByText('copy')).toBeTruthy();
+    expect(screen.getByText('read')).toBeTruthy();
+    expect(screen.getByText(/rt\.service\('clipboard'\)/)).toBeTruthy();
+  });
+
+  it('resolves an installed (disk) service into the context so its overview lists its methods', async () => {
+    const greeter = definePlugin({
+      manifest: { id: 'greeter', name: 'Greeter', version: '1.0.0', service: true },
+      provides: () => ({ greet: (name: string) => `hi ${name}` }),
+    }) as unknown as AnyPluginModule;
+    const service: HostService = {
+      listAvailable: () => [
+        { id: 'greeter', name: 'Greeter', version: '1.0.0', source: 'github', kind: 'service', launchable: false },
+      ],
+      listBuckets: () => [],
+      install: () => {},
+      addBucket: () => {},
+      loadModule: async (id) => (id === 'greeter' ? greeter : undefined),
+    };
+
+    render(React.createElement(App, { service, eagle: fakeEagle() }));
+    await userEvent.click(screen.getByText('Greeter'));
+
+    // The installed service was activated into the shared context, so its
+    // detail lists the method it provides as a token.
+    expect(await screen.findByText('greet')).toBeTruthy();
   });
 
   it('toggles a plugin off and persists the disabled id across a remount', async () => {
     const { unmount } = render(React.createElement(App, { service: fakeService(), eagle: fakeEagle() }));
 
-    const row = screen.getByText('Clipboard').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getByTitle('disable'));
-    expect(within(row).getByTitle('enable')).toBeTruthy();
+    await userEvent.click(screen.getByRole('switch', { name: 'Disable Clipboard' }));
+    expect(screen.getByRole('switch', { name: 'Enable Clipboard' })).toBeTruthy();
 
     // Remount: the toggle survives because disabled ids are read back from localStorage.
     unmount();
     render(React.createElement(App, { service: fakeService(), eagle: fakeEagle() }));
-    const remounted = screen.getByText('Clipboard').closest('div') as HTMLElement;
-    expect(within(remounted).getByTitle('enable')).toBeTruthy();
+    expect(screen.getByRole('switch', { name: 'Enable Clipboard' })).toBeTruthy();
   });
 });
