@@ -90,17 +90,40 @@ function stylingSection(context: HostContext): string {
   return lines.length ? `Available styling (widget types you may use):\n${lines.join('\n')}` : '';
 }
 
-/** Assemble the full generation prompt from the instruction, registries, and opted-in platform surfaces. */
-export function buildGenerationPrompt(instruction: string, context: HostContext, options: PromptOptions = {}): string {
+/** The optional platform/registry sections both prompt kinds share. */
+function sharedSections(context: HostContext, options: PromptOptions): string[] {
   const { includeEagle = true, includeWebApi = true } = options;
   return [
-    'You generate a Power Eagle plugin.',
-    RULES,
-    SAMPLE,
     includeEagle ? eagleSurface : '',
     includeWebApi ? webApiSurface : '',
     servicesSection(context),
     stylingSection(context),
+  ];
+}
+
+/** Assemble the full generation prompt from the instruction, registries, and opted-in platform surfaces. */
+export function buildGenerationPrompt(instruction: string, context: HostContext, options: PromptOptions = {}): string {
+  return ['You generate a Power Eagle plugin.', RULES, SAMPLE, ...sharedSections(context, options), `Task: ${instruction}`]
+    .filter((section) => section.length > 0)
+    .join('\n\n');
+}
+
+/**
+ * Assemble the refinement prompt: the rules, the current module source (the
+ * version the user has on stage), and the revision task. The current source
+ * replaces the worked SAMPLE — it is the example to mimic.
+ */
+export function buildRefinementPrompt(
+  instruction: string,
+  currentSource: string,
+  context: HostContext,
+  options: PromptOptions = {},
+): string {
+  return [
+    'You revise an existing Power Eagle plugin.',
+    RULES,
+    `Current module source — revise THIS module and output the FULL revised module:\n\n${currentSource}`,
+    ...sharedSections(context, options),
     `Task: ${instruction}`,
   ]
     .filter((section) => section.length > 0)

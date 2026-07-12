@@ -1,27 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
 import { PluginRuntimeView } from './plugin-runtime-view';
-import { initHostService, buildHostContext, type HostService, type HostContext, type PluginSummary } from './host-service';
+import { initHostService, resolveHostContext, type HostService, type HostContext, type PluginSummary } from './host-service';
 import type { AnyPluginModule } from '../plugins/builtins';
 import { AiTab } from '../ai/ai-tab';
-import { generatePlugin } from '../ai/generate';
+import { runTurn, type TurnInput } from '../ai/converse';
 import type { PromptOptions } from '../ai/prompt';
-import { aidrivenDir, listAttempts, powereagleHome, type Attempt } from '../ai/aidriven-store';
+import {
+  listConversations,
+  versionDir,
+  deleteTurn as deleteConversationTurn,
+  powereagleHome,
+  type Conversation,
+} from '../ai/conversation-store';
 import { resolveAiModule, type AiModule } from '../ai/ai-bridge';
 import { loadDiskPlugin, nativeImport } from '../host/install/disk-plugin';
-import { joinPath } from '../host/install/fs-bridge';
 import { createEagleHost, defaultEagleHostDeps } from './eagle-host';
 import { loadTheme } from './theme-store';
 import { ThemeContext } from '../sdui/render/render';
 import { EMPTY_THEME, mergeThemes } from '../sdui/theme';
-import { listBuiltinModules } from '../plugins/builtins';
 import type { EagleHost } from '../plugins/eagle';
 import type { Theme } from '../sdui/types';
+import { ExtensionDetail } from './extension-detail';
+import { ExtensionList } from './extension-list';
+import { InstallView } from './install-view';
 
-const EMPTY_CONTEXT: HostContext = { services: {}, widgets: {}, theme: EMPTY_THEME, contributions: {} };
+const EMPTY_CONTEXT: HostContext = { services: {}, widgets: {}, theme: EMPTY_THEME, contributions: {}, failures: {} };
 
 const DISABLED_KEY = 'peagle.disabled.v1';
 
@@ -36,10 +40,10 @@ function loadDisabled(): Set<string> {
   }
 }
 
-/** Read AI attempts from disk, tolerating an unavailable filesystem bridge. */
-function readAttemptsSafely(): Attempt[] {
+/** Read AI conversations from disk, tolerating an unavailable filesystem bridge. */
+function readConversationsSafely(): Conversation[] {
   try {
-    return listAttempts(powereagleHome());
+    return listConversations(powereagleHome());
   } catch {
     return [];
   }
@@ -55,12 +59,10 @@ function saveDisabled(ids: ReadonlySet<string>): void {
   }
 }
 
-// Plugin tabs split by source (builtin = bundled, any kind) and by kind for the
-// rest (app = installed visual, service, styling); buckets/install manage
-// adding plugins through the saucepan-backed host service.
-type HostTab = 'builtin' | 'app' | 'service' | 'styling' | 'ai' | 'buckets' | 'install';
-const PLUGIN_TABS: HostTab[] = ['builtin', 'app', 'service', 'styling'];
-const TABS: HostTab[] = [...PLUGIN_TABS, 'ai', 'buckets', 'install'];
+// Three sections: installed (everything on the machine, one filterable list),
+// install (get new extensions: by name + sources), ai (generate one).
+type HostTab = 'installed' | 'install' | 'ai';
+const TABS: HostTab[] = ['installed', 'install', 'ai'];
 
 interface HostEvent {
   id: number;
@@ -74,18 +76,10 @@ type Launch =
   | { id: string; status: 'ready'; module: AnyPluginModule }
   | { id: string; status: 'error'; message: string };
 
-/** Does a plugin belong in the given tab? builtin = bundled (any kind); the rest group installed by kind. */
-function inTab(plugin: PluginSummary, tab: HostTab): boolean {
-  if (tab === 'builtin') return plugin.source === 'builtin';
-  if (tab === 'app') return plugin.source !== 'builtin' && plugin.kind === 'visual';
-  return plugin.source !== 'builtin' && plugin.kind === tab;
-}
-
 /**
- * The v3 host shell. Plugins are listed in four tabs (builtin / app / service /
- * styling); a visual plugin launches into the registry-driven renderer, while
- * service and styling plugins run in the background and contribute their
- * surfaces / widgets / theme to every launched plugin.
+ * The v3 host shell. The installed tab lists every extension — bundled and
+ * disk-installed, all kinds — in one filterable list whose status light is the
+ * enable toggle; install gets new extensions; ai generates one.
  */
 export function App(props: { service?: HostService; eagle?: EagleHost; theme?: Theme; ai?: AiModule }): JSX.Element {
   const [events, setEvents] = useState<HostEvent[]>([]);
@@ -103,15 +97,12 @@ export function App(props: { service?: HostService; eagle?: EagleHost; theme?: T
 
   const [context, setContext] = useState<HostContext>(EMPTY_CONTEXT);
   const [service, setService] = useState<HostService | null>(props.service ?? null);
-  const [tab, setTab] = useState<HostTab>('builtin');
+  const [tab, setTab] = useState<HostTab>('installed');
   const [available, setAvailable] = useState<PluginSummary[]>([]);
   const [buckets, setBuckets] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Enable state persists across reloads via localStorage (disabled plugin ids).
   const [disabled, setDisabled] = useState<ReadonlySet<string>>(loadDisabled);
-  const [filter, setFilter] = useState('');
-  const [bucketInput, setBucketInput] = useState('');
-  const [installInput, setInstallInput] = useState('');
   const [launch, setLaunch] = useState<Launch | null>(null);
 
   useEffect(() => {
@@ -140,19 +131,20 @@ export function App(props: { service?: HostService; eagle?: EagleHost; theme?: T
     saveDisabled(disabled);
   }, [disabled]);
 
-  // Activate the enabled service + styling plugins; their surfaces/widgets/theme
-  // become the shared context every launched visual plugin runs against.
-  // Disabled plugins are excluded, so the context rebuilds when a toggle flips.
+  // Activate the enabled service + styling plugins — bundled and installed from
+  // disk — into the shared context every launched visual plugin runs against.
+  // Disabled plugins are excluded, so the context rebuilds when a toggle flips;
+  // a new install changes `available`, which re-resolves the context.
   useEffect(() => {
+    if (!service) return;
     let active = true;
-    const modules = listBuiltinModules().filter((module) => !disabled.has(module.manifest.id));
-    void buildHostContext(modules, eagle as unknown as Record<string, unknown>).then((built) => {
+    void resolveHostContext(service, disabled, eagle as unknown as Record<string, unknown>).then((built) => {
       if (active) setContext(built);
     });
     return () => {
       active = false;
     };
-  }, [eagle, disabled]);
+  }, [service, available, eagle, disabled]);
 
   // Lazy-load the launched plugin's module only when an enabled visual plugin is
   // selected: built-ins resolve instantly, installed ones import from disk.
@@ -193,77 +185,74 @@ export function App(props: { service?: HostService; eagle?: EagleHost; theme?: T
     });
   }
 
-  /** A service/styling plugin's overview: what it provides. */
-  function renderOverview(plugin: PluginSummary): JSX.Element {
-    const contribution = context.contributions[plugin.id];
-    if (plugin.kind === 'service') {
-      return (
-        <div className="space-y-2">
-          <div className="text-sm font-semibold text-foreground">{plugin.name} · service</div>
-          <div className="text-xs text-muted-foreground">methods: {contribution?.services?.methods.join(', ') || '—'}</div>
-          <div className="text-xs text-muted-foreground">objects/vars: {contribution?.services?.vars.join(', ') || '—'}</div>
-        </div>
-      );
-    }
-    return (
-      <div className="space-y-2">
-        <div className="text-sm font-semibold text-foreground">{plugin.name} · styling</div>
-        <div className="text-xs text-muted-foreground">widget types: {contribution?.widgets?.join(', ') || '—'}</div>
-        <div className="text-xs text-muted-foreground">theme: {contribution?.theme ? 'yes' : 'no'}</div>
-      </div>
-    );
-  }
-
   function refresh(): void {
     if (!service) return;
     setAvailable(service.listAvailable());
     setBuckets(service.listBuckets());
   }
 
-  function handleAddBucket(): void {
-    if (!service || !bucketInput.trim()) return;
-    service.addBucket(bucketInput.trim());
-    setBucketInput('');
+  function handleAddBucket(url: string): void {
+    if (!service) return;
+    service.addBucket(url);
     refresh();
   }
 
-  function handleInstall(): void {
-    if (!service || !installInput.trim()) return;
-    service.install(installInput.trim());
-    setInstallInput('');
+  function handleInstall(name: string): void {
+    if (!service) return;
+    service.install(name);
     refresh();
   }
 
-  const isPluginTab = PLUGIN_TABS.includes(tab);
-  const needle = filter.trim().toLowerCase();
-  const visible = available.filter(
-    (plugin) => inTab(plugin, tab) && (!needle || plugin.name.toLowerCase().includes(needle)),
-  );
   const selected = available.find((plugin) => plugin.id === selectedId) ?? null;
+  const activeCount = available.filter((plugin) => !disabled.has(plugin.id) && !context.failures[plugin.id]).length;
 
   // AI tab wiring. The filesystem/home and the injected `ai` global are only
   // touched on the ai tab, so the non-ai shell (and App.test) never hit them.
   const eagleRecord = eagle as unknown as Record<string, unknown>;
-  const aiAttempts: Attempt[] = tab === 'ai' ? readAttemptsSafely() : [];
-  const runGenerate = (instruction: string, promptOptions: PromptOptions): ReturnType<typeof generatePlugin> =>
-    generatePlugin(instruction, {
+  const aiConversations: Conversation[] = tab === 'ai' ? readConversationsSafely() : [];
+  const runAiTurn = (input: TurnInput, promptOptions?: PromptOptions): ReturnType<typeof runTurn> =>
+    runTurn(input, {
       ai: (props.ai ?? resolveAiModule()) as AiModule,
       home: powereagleHome(),
       context,
       newId: () => `ai-${Date.now().toString(36)}`,
       promptOptions,
     });
-  const loadAttempt = (id: string): Promise<AnyPluginModule> =>
-    loadDiskPlugin(joinPath(aidrivenDir(powereagleHome()), id), { importModule: nativeImport });
+  const loadAiVersion = (conversationId: string, version: number): Promise<AnyPluginModule> =>
+    loadDiskPlugin(versionDir(powereagleHome(), conversationId, version), { importModule: nativeImport });
+
+  function renderViewport(plugin: PluginSummary): JSX.Element {
+    return (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <ThemeContext.Provider value={mergeThemes(context.theme, theme)}>
+          {launch?.id === plugin.id && launch.status === 'ready' ? (
+            <PluginRuntimeView
+              eagle={eagleRecord}
+              module={launch.module}
+              services={context.services}
+              widgets={context.widgets}
+            />
+          ) : launch?.id === plugin.id && launch.status === 'error' ? (
+            <div className="text-sm text-destructive">failed to load {plugin.name}: {launch.message}</div>
+          ) : (
+            <div className="text-sm text-muted-foreground">loading {plugin.name}…</div>
+          )}
+        </ThemeContext.Provider>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background px-4 py-5 text-foreground md:px-6">
-      <section className="relative mx-auto flex min-h-[720px] max-w-7xl overflow-hidden rounded-[24px] border border-border/80 bg-card/95 shadow-[0_24px_70px_hsl(var(--foreground)/0.12)]">
+      <section className="relative mx-auto flex min-h-[720px] max-w-7xl overflow-hidden rounded-xl border border-border bg-background">
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground md:px-5">
+          <header className="flex h-[52px] items-center gap-4 border-b border-border bg-card px-4 md:px-5">
             <div className="text-sm font-semibold tracking-[-0.02em] text-foreground">
               power<span className="font-medium text-muted-foreground">eagle</span>
-              <Badge className="ml-2 rounded-md px-2 py-0.5 text-[10px] font-medium" variant="outline">v3</Badge>
+            </div>
+            <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_6px_1px_hsl(var(--primary)/0.55)]" />
+              {activeCount} of {available.length} active
             </div>
             <Tabs className="ml-auto" onValueChange={(value) => setTab(value as HostTab)} value={tab}>
               <TabsList>
@@ -272,112 +261,48 @@ export function App(props: { service?: HostService; eagle?: EagleHost; theme?: T
                 ))}
               </TabsList>
             </Tabs>
-            {service ? null : <span className="text-xs">initializing saucepan...</span>}
+            {service ? null : <span className="text-xs text-muted-foreground">initializing saucepan...</span>}
           </header>
           <div className="flex min-h-0 flex-1">
             {tab === 'ai' ? (
               <AiTab
                 context={context}
+                conversations={aiConversations}
+                deleteTurn={(conversationId, version) => deleteConversationTurn(powereagleHome(), conversationId, version)}
                 eagle={eagleRecord}
-                attempts={aiAttempts}
-                generate={runGenerate}
-                loadAttempt={loadAttempt}
+                loadVersion={loadAiVersion}
+                runTurn={runAiTurn}
               />
+            ) : tab === 'install' ? (
+              <InstallView buckets={buckets} onAddBucket={handleAddBucket} onInstall={handleInstall} />
             ) : (
-            <>
-            {isPluginTab ? (
-              <aside className="flex w-[248px] flex-shrink-0 flex-col border-r border-border bg-muted/25">
-                <div className="border-b border-border p-3">
-                  <Input
-                    className="w-full"
-                    placeholder={`filter ${tab}...`}
-                    value={filter}
-                    onChange={(event) => setFilter(event.target.value)}
-                  />
-                </div>
-                <div className="flex-1 overflow-y-auto p-2 text-sm">
-                  {visible.length ? visible.map((plugin) => {
-                    const isOff = disabled.has(plugin.id);
-                    return (
-                      <div
-                        key={plugin.id}
-                        className={`mb-1.5 flex items-stretch gap-1 rounded-xl border transition-colors ${selectedId === plugin.id ? 'border-border bg-card shadow-sm' : 'border-transparent hover:bg-card hover:shadow-sm'} ${isOff ? 'opacity-50' : ''}`}
-                      >
-                        <button className="flex flex-1 flex-col px-3 py-3 text-left" onClick={() => setSelectedId(plugin.id)} type="button">
-                          <span className="flex items-center gap-1.5 text-foreground">
-                            <span className="font-medium">{plugin.name}</span>
-                            <Badge className="rounded-md px-2 py-0.5 text-[10px] font-medium" variant="outline">{plugin.kind}</Badge>
-                          </span>
-                          <span className="mt-1 text-xs text-muted-foreground">{plugin.id} · v{plugin.version} · {plugin.source}</span>
-                          {plugin.kind !== 'visual' ? <span className="mt-1 text-[10px] text-muted-foreground/80">background — contributes {plugin.kind === 'service' ? 'methods/objects' : 'widgets/theme'}</span> : null}
-                        </button>
-                        <button
-                          className="flex-shrink-0 rounded-r-xl px-2 text-[10px] font-medium text-muted-foreground hover:text-foreground"
-                          onClick={() => toggle(plugin.id)}
-                          type="button"
-                          aria-pressed={!isOff}
-                          title={isOff ? 'enable' : 'disable'}
-                        >
-                          {isOff ? 'off' : 'on'}
-                        </button>
-                      </div>
-                    );
-                  }) : (
-                    <div className="px-3 py-4 text-sm text-muted-foreground">no {tab} plugins</div>
+              <>
+                <ExtensionList
+                  disabled={disabled}
+                  failures={context.failures}
+                  onSelect={setSelectedId}
+                  onToggle={toggle}
+                  plugins={available}
+                  selectedId={selectedId}
+                />
+                <section className="min-w-0 flex-1 overflow-y-auto p-5 md:p-6">
+                  {selected ? (
+                    <ExtensionDetail
+                      contribution={context.contributions[selected.id]}
+                      failure={context.failures[selected.id]}
+                      isDisabled={disabled.has(selected.id)}
+                      onToggle={() => toggle(selected.id)}
+                      plugin={selected}
+                    >
+                      {selected.kind === 'visual' ? renderViewport(selected) : null}
+                    </ExtensionDetail>
+                  ) : (
+                    <div className="px-3 py-10 text-center text-sm text-muted-foreground">
+                      Select an extension to see what it does.
+                    </div>
                   )}
-                </div>
-              </aside>
-            ) : null}
-            <section className="min-w-0 flex-1 overflow-y-auto bg-background/70 p-4 md:p-5">
-              {isPluginTab ? (
-                !selected ? (
-                  <div className="px-3 py-8 text-center text-sm text-muted-foreground">select a plugin</div>
-                ) : disabled.has(selected.id) ? (
-                  <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-                    {selected.name} is disabled — enable it to {selected.kind === 'visual' ? 'launch' : 'see what it provides'}
-                  </div>
-                ) : selected.kind === 'visual' ? (
-                  <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                    <ThemeContext.Provider value={mergeThemes(context.theme, theme)}>
-                      {launch?.id === selected.id && launch.status === 'ready' ? (
-                        <PluginRuntimeView
-                          module={launch.module}
-                          eagle={eagle as unknown as Record<string, unknown>}
-                          services={context.services}
-                          widgets={context.widgets}
-                        />
-                      ) : launch?.id === selected.id && launch.status === 'error' ? (
-                        <div className="text-sm text-destructive">failed to load {selected.name}: {launch.message}</div>
-                      ) : (
-                        <div className="text-sm text-muted-foreground">loading {selected.name}…</div>
-                      )}
-                    </ThemeContext.Provider>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">{renderOverview(selected)}</div>
-                )
-              ) : null}
-              {tab === 'buckets' ? (
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input className="flex-1" placeholder="bucket path or file:// url" value={bucketInput} onChange={(event) => setBucketInput(event.target.value)} />
-                    <Button onClick={handleAddBucket} type="button">add bucket</Button>
-                  </div>
-                  <ul className="space-y-1.5 text-sm">
-                    {buckets.length ? buckets.map((url) => (
-                      <li key={url} className="rounded-lg border border-border bg-card px-3 py-2 text-muted-foreground">{url}</li>
-                    )) : <li className="px-3 py-4 text-muted-foreground">no buckets registered</li>}
-                  </ul>
-                </div>
-              ) : null}
-              {tab === 'install' ? (
-                <div className="flex gap-2">
-                  <Input className="flex-1" placeholder="owner/repo to install" value={installInput} onChange={(event) => setInstallInput(event.target.value)} />
-                  <Button onClick={handleInstall} type="button">install</Button>
-                </div>
-              ) : null}
-            </section>
-            </>
+                </section>
+              </>
             )}
           </div>
         </div>
@@ -385,7 +310,7 @@ export function App(props: { service?: HostService; eagle?: EagleHost; theme?: T
           <div className="border-b border-border px-4 py-3 text-sm font-semibold text-foreground">inspector</div>
           <div className="flex-1 overflow-y-auto p-3 text-xs text-muted-foreground">
             {events.length ? events.map((event) => (
-              <div key={event.id} className="mb-2 rounded-lg border border-border bg-card px-3 py-2">
+              <div className="mb-2 rounded-lg border border-border bg-card px-3 py-2" key={event.id}>
                 <div className="font-medium text-foreground">{event.title}</div>
                 {event.body ? <div className="mt-0.5">{event.body}</div> : null}
               </div>
